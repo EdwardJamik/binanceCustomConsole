@@ -1,0 +1,6 @@
+.mainDashboard{
+    border-radius: 0 30px 30px 30px;
+    padding: 12px 30px 30px 30px;
+    background-color: #1A1A1A;
+    transition: border-radius .1s ease-in-out;
+}
