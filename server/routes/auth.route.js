@@ -1,4 +1,4 @@
-const { Signup,Login, Logout} = require("../Controllers/auth.controller");
+const { Signup,Login, Logout} = require("../controllers/auth.controller");
 const {userVerification} = require("../middlewares/authMiddleware");
 const {ChangeAccountData, getUserData, ChangeAccountBinance, getUserBinanceData} = require("../controllers/auth.controller");
 const router = require("express").Router();

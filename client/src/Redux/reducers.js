@@ -1,8 +1,10 @@
 import {fetchAuthenticationStatus} from "./actions.js";
 
+
+
 const initialState = {
     user: {
-        isAuthenticated: await fetchAuthenticationStatus(),
+        isAuthenticated: false,
     },
     currentOption: {
         currency: 'BTCUSDT',

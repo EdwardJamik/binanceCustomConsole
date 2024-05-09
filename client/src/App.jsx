@@ -17,7 +17,13 @@ function App() {
     const dispatch = useDispatch();
 
     useEffect(() => {
-        fetchAuthenticationStatus();
+        const auth = async () => {
+            const user = await fetchAuthenticationStatus();
+            dispatch({type: 'SET_AUTHENTICATION_STATUS', payload: user});
+        }
+
+        auth()
+
     }, [dispatch]);
 
     const routes = [
