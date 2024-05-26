@@ -143,13 +143,7 @@ async function createEventsSocket(binance_test,key_1,key_2) {
                             positionList: modifiedBeforeOrders,
                         });
 
-                        const message = `#${s} продажа по рынку\n\n
-                        Кол-во: ${q}\n
-                        Цена покупки: ${updatedPosition?.startPrice}\n\n
-                        Цена продажи: ${ap}\n
-                        Сумма: ${(parseFloat(q) * parseFloat(ap)).toFixed(4)}\n
-                        Прибыль: ${rp}\n\n
-                        id: ${updatedPosition?._id}`
+                        const message = `#${s} продажа по рынку\n\nКол-во: ${q}\nЦена покупки: ${updatedPosition?.startPrice}\n\nЦена продажи: ${ap}\nСумма: ${(parseFloat(q) * parseFloat(ap)).toFixed(4)}\nПрибыль: ${rp}\n\nid: ${updatedPosition?._id}`
                         bot.telegram.sendMessage(findUser?.chat_id, message)
                     }
                 } else if(ot === 'TRAILING_STOP_MARKET' && R){
@@ -195,13 +189,7 @@ async function createEventsSocket(binance_test,key_1,key_2) {
                         positionList: modifiedBeforeOrders,
                     });
 
-                    const message = `#${s} продажа по рынку\n\n
-                    Кол-во: ${q}\n
-                    Цена покупки: ${updatedPosition?.startPrice}\n\n
-                    Цена продажи: ${ap}\n
-                    Сумма: ${(parseFloat(q) * parseFloat(ap)).toFixed(4)}\n
-                    Прибыль: ${rp}\n\n
-                    id: ${updatedPosition?._id}`
+                    const message = `#${s} продажа по рынку\n\nКол-во: ${q}\nЦена покупки: ${updatedPosition?.startPrice}\n\nЦена продажи: ${ap}\nСумма: ${(parseFloat(q) * parseFloat(ap)).toFixed(4)}\nПрибыль: ${rp}\n\nid: ${updatedPosition?._id}`
                     bot.telegram.sendMessage(findUser?.chat_id, message)
                 }
 
