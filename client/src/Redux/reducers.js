@@ -1,30 +1,41 @@
-import {fetchAuthenticationStatus} from "./actions.js";
-
-
 
 const initialState = {
     user: {
-        isAuthenticated: false,
+        isAuthenticated: null,
     },
+    positions:[],
+    positionsBefore:[],
+    symbol:'BTCUSDT',
+    type_binance:null,
+    balance:{'USDT':0},
+    positionPrice:{},
+    commission:{commissionTaker:null,commissionMaker:null},
     currentOption: {
-        currency: 'BTCUSDT',
-        amount: '0',
-        adjustLeverage:'2',
+        minCurrencyPrice: 100,
+        amount: "0",
+        adjustLeverage:"2",
+        maxAdjustLeverage:"100",
         currencyPrice: 0,
+        currency:'BTCUSDT',
         takeProfit:{
+            status:true,
             price:0,
             procent:false
         },
         trailing:{
+            status:true,
             price:0,
             procent:false
         },
         macd:{
-            type:'LONG',
+            status:true,
+            type: "long",
+            type_g: "long",
             number:2,
-            timeFrame:'5m'
+            timeFrame:"5m"
         },
         withoutLoss:{
+            status:true,
             price:0,
             procent:false
         }
@@ -45,11 +56,115 @@ const authenticationReducer = (state = initialState, action) => {
         case 'FILTERED_CURRENCY':
             return {
                 ...state,
+                symbol:action.payload,
                 currentOption: {
                     ...state.currentOption,
-                    currency: action.payload,
                 }
             }
+            break
+        case 'FILTERED_COMMISSION':
+            return {
+                ...state,
+                commission:action.payload,
+            }
+            break
+        case 'FILTERED_BALANCE':
+            return {
+                ...state,
+                balance: action.payload,
+            }
+            break
+        case 'FILTERED_MACD':
+            return {
+                ...state,
+                currentOption: {
+                    ...state.currentOption,
+                    macd:{
+                        ...state.currentOption.macd,
+                        ...action.payload,
+                    }
+                }
+            }
+            break
+        case 'SET_SYMBOL':
+            return {
+                ...state,
+                symbol: action.payload,
+            }
+            break
+        case 'FILTERED_CURRENCY_PRICE':
+            return {
+                ...state,
+                currentOption: {
+                    ...state.currentOption,
+                    minCurrencyPrice: action.payload,
+                }
+            }
+            break
+        case 'FILTERED_POSITION':
+            return {
+                ...state,
+                positions: [
+                    ...state.positions,
+                    ...action.payload,
+                ]
+            }
+            break
+        case 'FILTERED_POSITION_BEFORE':
+            return {
+                ...state,
+                positionsBefore: [
+                    ...action.payload,
+                ]
+            }
+            break
+        case 'CURRENT_POSITION':
+            return {
+                ...state,
+                positions: [
+                    ...action.payload,
+                ]
+            }
+            break
+        case 'SET_TYPE_BINANCE':
+            return {
+                ...state,
+                type_binance: action.payload,
+            }
+            break
+        case 'FILTERED_POSITION_PRICE':
+            return {
+                ...state,
+                positionPrice:
+                    {...action.payload},
+
+            }
+            break
+        case 'SET_LEVERAGE':
+            return {
+                ...state,
+                currentOption: {
+                    ...state.currentOption,
+                    adjustLeverage: action.payload,
+                }
+            };
+            break
+        case 'SET_SIZE':
+            return {
+                ...state,
+                currentOption: {
+                    ...state.currentOption,
+                    amount: action.payload,
+                }
+            };
+            break
+        case 'SET_USER_DATA':
+            return {
+                ...state,
+                currentOption: {...action.payload}
+
+            };
+            break
         default:
             return state;
     }

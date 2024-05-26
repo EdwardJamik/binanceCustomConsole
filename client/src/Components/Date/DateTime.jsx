@@ -2,9 +2,11 @@ import React, {useEffect, useState} from 'react';
 import dayjs from "dayjs";
 
 import "../datetime.css"
+import {useSelector} from "react-redux";
+import {ConfigProvider, Select} from "antd";
 
 const morningIcon = [
-    <svg fill="#F0D85A" width='26px' height='26px' viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+    <svg fill="#F0D85A" width='26px' key='1' height='26px' viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
     <g id="SVGRepo_bgCarrier" strokeWidth="0"></g>
     <g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g>
         <path
@@ -13,7 +15,7 @@ const morningIcon = [
 ]
 
 const nightIcon = [
-    <svg viewBox="0 0 24 24" width='26px' height='26px' fill="none" xmlns="http://www.w3.org/2000/svg">
+    <svg viewBox="0 0 24 24" width='26px' key='2' height='26px' fill="none" xmlns="http://www.w3.org/2000/svg">
         <g id="SVGRepo_bgCarrier" strokeWidth="0"></g>
         <g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g>
             <path
@@ -29,7 +31,7 @@ const nightIcon = [
 ]
 
 const dayIcon = [
-    <svg fill="#F0D85A" width='26px' height='26px' version="1.1" id="Capa_1" xmlns="http://www.w3.org/2000/svg"
+    <svg fill="#F0D85A" width='26px' key='3' height='26px' version="1.1" id="Capa_1" xmlns="http://www.w3.org/2000/svg"
          viewBox="0 0 475.465 475.465"><g id="SVGRepo_bgCarrier" strokeWidth="0"></g>
         <g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g>
         <g id="SVGRepo_iconCarrier"> <g> <g> <path
@@ -70,9 +72,24 @@ const dayIcon = [
                     d="M390.901,411.687c-5.788,0-11.247-2.236-15.373-6.296l-38.874-38.25c-8.615-8.477-8.728-22.383-0.251-30.998 c4.154-4.222,9.704-6.546,15.627-6.546c5.786,0,11.246,2.235,15.371,6.295l38.875,38.25c8.614,8.478,8.726,22.384,0.25,30.999 C402.373,409.362,396.824,411.687,390.901,411.687z M352.03,330.597c-5.652,0-10.949,2.219-14.914,6.247 c-8.091,8.223-7.983,21.494,0.239,29.584l38.874,38.25c3.938,3.875,9.148,6.009,14.672,6.009c5.652,0,10.948-2.219,14.912-6.247 c8.09-8.223,7.982-21.494-0.238-29.585l-38.875-38.25C362.763,332.73,357.553,330.597,352.03,330.597z"></path> </g> </g> </g></svg>
 ]
 
+const wallet = [
+    <svg width='26px' key='4' height='26px' viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+
+            <path d="M6 8H10" stroke="#F0D85A" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
+            <path
+                d="M22 10.5C22 10.4226 22 9.96726 21.9977 9.9346C21.9623 9.43384 21.5328 9.03496 20.9935 9.00214C20.9583 9 20.9167 9 20.8333 9H18.2308C16.4465 9 15 10.3431 15 12C15 13.6569 16.4465 15 18.2308 15H20.8333C20.9167 15 20.9583 15 20.9935 14.9979C21.5328 14.965 21.9623 14.5662 21.9977 14.0654C22 14.0327 22 13.5774 22 13.5"
+                stroke="#1C274C" strokeWidth="1.5" strokeLinecap="round"></path>
+            <circle cx="18" cy="12" r="1" fill="#F0D85A"></circle>
+            <path
+                d="M13 4C16.7712 4 18.6569 4 19.8284 5.17157C20.6366 5.97975 20.8873 7.1277 20.965 9M10 20H13C16.7712 20 18.6569 20 19.8284 18.8284C20.6366 18.0203 20.8873 16.8723 20.965 15M9 4.00093C5.8857 4.01004 4.23467 4.10848 3.17157 5.17157C2 6.34315 2 8.22876 2 12C2 15.7712 2 17.6569 3.17157 18.8284C3.82475 19.4816 4.69989 19.7706 6 19.8985"
+                stroke="#F0D85A" strokeWidth="1.5" strokeLinecap="round"></path>
+    </svg>
+]
+
 const DateTime = () => {
 
     const [currentTime, setCurrentTime] = useState(dayjs());
+    const balance = useSelector(state => state.balance)
 
     useEffect(() => {
         const interval = setInterval(() => {
@@ -90,12 +107,59 @@ const DateTime = () => {
             </div>
             <div className="time">
                 <span className='title gold'>
-                    {currentTime.hour() >= 18 && currentTime.hour() < 0 && <>{morningIcon}</>}
+                    {currentTime.hour() >= 18 && currentTime.hour() > 0 && <>{morningIcon}</>}
                     {currentTime.hour() >= 12 && currentTime.hour() < 18 && <>{dayIcon}</>}
                     {currentTime.hour() >= 5 && currentTime.hour() < 12 && <>{morningIcon}</>}
                     {currentTime.hour() >= 0 && currentTime.hour() < 5 && <>{nightIcon}</>}
                 </span>
                 {currentTime.format('HH:mm:ss')}
+            </div>
+            <div className="time">
+                {wallet}
+                {balance.length > 1 ?
+                    <ConfigProvider
+                        theme={{
+                            token: {
+                                colorTextSecondary: '#000',
+                                colorTextLabel: '#000',
+                                colorTextBase: '#fff',
+                                optionFontSize: '20px',
+                                colorPrimaryHover: 'none',
+                                optionSelectedFontWeight: '600',
+                                boxShadowSecondary: 'none',
+
+                                colorBgContainer: 'none',
+                                colorBorder: 'none',
+
+                                colorPrimaryBg: 'rgba(240, 216, 90, 0.4)',
+                                fontWeight: '600',
+                                colorFillTertiary: 'rgba(240, 216, 90, 0.4)',
+                                colorTextTertiary: '#000',
+                                colorTextQuaternary: 'rgba(240, 216, 90, 0.4)',
+                            },
+                        }}
+                    >
+                        <Select
+                            defaultValue="USDT"
+                            style={{
+                                width: 120,
+                            }}
+                            dropdownStyle={{
+                                background: 'rgba(7, 7, 7, 0.6)',
+                                border: 'none',
+                                padding: '10px 8px 10px',
+                                textAlign: 'center',
+                                width: '160px',
+                            }}
+                            // onChange={handleChange}
+                            options={balance}
+                        />
+                    </ConfigProvider>
+                    :
+                    <div style={{width:'100%',fontSize:'16px'}}>{balance[0]?.label}</div>
+
+                }
+
             </div>
         </div>
     );

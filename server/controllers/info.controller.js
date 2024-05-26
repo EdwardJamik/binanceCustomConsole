@@ -1,25 +1,24 @@
-const fs = require("fs");
 const axios = require("axios");
 const jwt = require("jsonwebtoken");
 const User = require("../models/user.model.js");
 const {getSignature, getHeaders} = require("../util/signature");
-const { TOKEN_KEY, TOKEN_BINANCE_KEY,BINANCE_API_DOMAIN, TEST_BINANCE_API_DOMAIN } = process.env
+const { TOKEN_BINANCE_KEY,BINANCE_API_DOMAIN, TEST_BINANCE_API_DOMAIN } = process.env
 
 module.exports.getCurrency = async (req, res, next) => {
     try {
 
-
         axios.get('https://fapi.binance.com/fapi/v1/exchangeInfo').then((response)=>{
             if (response.data && response.data.symbols) {
                 const pairs = response.data.symbols
-                    .filter(pair => pair.symbol.endsWith('USDT'))
+                    .filter(pair => pair.status === 'TRADING')
                     .map(pair => ({ label: pair.symbol, value: pair.symbol }));
                 res.json({pairs:pairs});
-                // console.log(pairs);
             } else {
                 res.json({pairs:false});
                 console.log('Отримання валютних пар не вдалося.');
             }
+
+            // pair.symbol.endsWith('USDT') &&
         }).catch((e)=>{
             console.error(e)
         });

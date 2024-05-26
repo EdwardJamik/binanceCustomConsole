@@ -19,6 +19,7 @@ const Home = () => {
             className='mainDashboard'
             style={{
                 borderRadius: page !== "" ? '30px' : "",
+                // background:'#0E0E0E',
             }}
         >
             <>
@@ -49,7 +50,9 @@ const Home = () => {
                 className='mainDashboard'
                 style={{
                     borderRadius: '30px',
-                    marginTop:'30px'
+                    marginTop:'30px',
+                    background:'#0E0E0E',
+                    overflow:'auto'
                 }}
             >
                 <ConfigProvider
@@ -78,18 +81,20 @@ const Home = () => {
                     defaultActiveKey="1"
                     centered
                     items={
-                    [{
-                        label: `Активные`,
-                        key: 1,
-                        children: <PositionActive/>,
-                    },
+                    [
+                        {
+                            label: `Активные`,
+                            key: 1,
+                            children: <PositionActive/>,
+                        },
                         {
                             label: `Выполнены`,
                             key: 2,
                             children: <PositionBefore/>,
-                        }]
+                        }
+                        ]
 
-                }
+                    }
                 />
             </ConfigProvider>
             </div>

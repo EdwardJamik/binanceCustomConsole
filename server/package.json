@@ -10,8 +10,11 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "amqplib": "^0.10.4",
     "axios": "^1.6.8",
     "bcryptjs": "^2.4.3",
+    "binance-api-node": "^0.12.7",
+    "binance-futures": "^1.4.4",
     "body-parser": "^1.20.2",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
@@ -20,6 +23,8 @@
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.3.3",
     "node-binance-api": "^0.13.1",
+    "socket.io": "^4.7.5",
+    "technicalindicators": "^3.1.0",
     "telegraf": "^4.16.3",
     "ws": "^8.17.0"
   }

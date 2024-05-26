@@ -8,7 +8,7 @@ const Price = () => {
     const symbol = useSelector(state => state.currentOption.currency)
 
     useEffect(() => {
-        const ws = new WebSocket(`wss://fstream.binance.com/ws/${symbol.toLowerCase()}@markPrice@1s`);
+        const ws = new WebSocket(`wss://fstream.binance.com/ws/${symbol.toLowerCase()}@trade`);
 
         ws.onopen = () => {
             console.log('Connected to server');

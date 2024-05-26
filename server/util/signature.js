@@ -1,16 +1,24 @@
 const crypto =  require("crypto");
 
 module.exports.getSignature = (queryString, token) => {
-    return crypto
-        .createHmac('sha256', token)
-        .update(queryString)
-        .digest('hex');
+    try{
+        return crypto
+            .createHmac('sha256', token)
+            .update(queryString)
+            .digest('hex');
+    } catch (e){
+        console.error(e)
+    }
 }
 
 
 module.exports.getHeaders = (token) => {
-    return {
-        'X-MBX-APIKEY': `${token}`,
-        'Content-Type': 'application/x-www-form-urlencoded'
-    };
+    try{
+        return {
+            'X-MBX-APIKEY': `${token}`,
+            'Content-Type': 'application/x-www-form-urlencoded'
+        };
+    } catch (e){
+        console.error(e)
+    }
 }

@@ -21,9 +21,30 @@ module.exports.createOrder = async (req, res, next) => {
         //         side:'BUY', // or SELL
         //         positionSide:`LONG`, //or SHORT
         //         quantity:`0.004`,
-        //         take_profit:{stopPrice:`59000`, price:`59200`}, // price is required for STOP (Not STOP_MARKET)
-        //         stop_loss:{stopPrice:`58000`, price:`57900`}, // price is required for TAKE_PROFIT (Not TAKE_PROFIT_MARKET)
-        //         trailing_stop_market: {callbackRate:`1`}
+        //         take_profit:{
+        //              stopPrice:`58000`, -  відсоток або точна сума
+        //              currentPrice: 61000, - теперішня ціна за пару
+        //              percent: false - false - це точна сума, true - в вісотках
+        //         }, // price is required for STOP (Not STOP_MARKET)
+        //         stop_loss:{
+        //              stopPrice:`58000`, -  відсоток або точна сума
+        //              currentPrice: 61000, - теперішня ціна за пару
+          //            percent: false - false - це точна сума, true - в вісотках
+        //         }, // price is required for TAKE_PROFIT (Not TAKE_PROFIT_MARKET)
+        //         trailing_stop_market: {
+        //              callbackRate:`1` - відсоток або точна сума
+        //              currentPrice: 61000, - теперішня ціна за пару
+        //              percent: false - false - це точна сума, true - в вісотках
+        //         },
+                // macd:{
+                //     type:'LONG',
+                //         number:2,
+                //         timeFrame:'5m'
+                // },
+                // withoutLoss:{
+                //     price:0,
+                //         percent:false
+                // }
         // }
 
         // START
@@ -41,28 +62,33 @@ module.exports.createOrder = async (req, res, next) => {
         if(order?.stop_loss) {
             let stopLossQuery = {...querySkeleton};
             stopLossQuery.side = `SELL`;
-
-            if(order?.stop_loss?.price) {
-                stopLossQuery.type = `STOP`;
-                stopLossQuery.price = order?.stop_loss?.price;
+            stopLossQuery.type = `STOP_MARKET`;
+            if(order?.stop_loss?.percent) {
+                const percentPrice = (order?.stop_loss?.currentPrice * order?.stop_loss?.stopPrice) / 100;
+                if(order?.positionSide === 'LONG') {
+                    stopLossQuery.stopPrice = order?.stop_loss?.currentPrice - percentPrice;
+                } else if(order?.positionSide === 'SHORT') {
+                    stopLossQuery.stopPrice = Number(order?.stop_loss?.currentPrice) + percentPrice;
+                }
             } else {
-                stopLossQuery.type = `STOP_MARKET`;
+                stopLossQuery.stopPrice = order?.stop_loss?.stopPrice;
             }
-            stopLossQuery.stopPrice = order?.stop_loss?.stopPrice;
-
             queryElements.push(stopLossQuery);
         }
         if(order?.take_profit) {
             let takeProfitQuery = {...querySkeleton};
             takeProfitQuery.side = `SELL`;
-            if(order?.take_profit?.price) {
-                takeProfitQuery.type = `TAKE_PROFIT`;
-                takeProfitQuery.price = order?.take_profit?.price;
+            takeProfitQuery.type = `TAKE_PROFIT_MARKET`;
+            if(order?.take_profit?.percent) {
+                const percentPrice = (order?.take_profit?.currentPrice * order?.take_profit?.stopPrice) / 100;
+                if(order?.positionSide === 'LONG') {
+                    takeProfitQuery.stopPrice = Number(order?.take_profit?.currentPrice) + percentPrice;
+                } else if(order?.positionSide === 'SHORT') {
+                    takeProfitQuery.stopPrice = order?.take_profit?.currentPrice - percentPrice;
+                }
             } else {
-                takeProfitQuery.type = `TAKE_PROFIT_MARKET`;
+                takeProfitQuery.stopPrice = order?.take_profit?.stopPrice;
             }
-            takeProfitQuery.stopPrice = order?.take_profit?.stopPrice;
-
             queryElements.push(takeProfitQuery);
         }
         if(order?.trailing_stop_market) {
@@ -70,7 +96,11 @@ module.exports.createOrder = async (req, res, next) => {
             trailingStopMarketQuery.side = querySkeleton.side; // IDK what should be in trailing
 
             trailingStopMarketQuery.type = `TRAILING_STOP_MARKET`;
-            trailingStopMarketQuery.callbackRate = order?.trailing_stop_market?.callbackRate;
+            if(order?.trailing_stop_market?.percent) {
+                trailingStopMarketQuery.callbackRate = order?.trailing_stop_market?.callbackRate;
+            } else {
+                trailingStopMarketQuery.callbackRate = (order?.trailing_stop_market?.callbackRate / order?.trailing_stop_market?.currentPrice) * 100;
+            }
 
             queryElements.push(trailingStopMarketQuery);
         }
@@ -123,20 +153,6 @@ async function getAccountInfo() {
     }
 }
 
-async function getLeverage(symbol) {
-    try {
-        let positions = (await getAccountInfo()).positions;
-
-        for(let i = 0; i < positions.length; ++i) {
-            if(positions[i].symbol === symbol) {
-                return positions[i]?.leverage;
-            }
-        }
-    } catch (error) {
-        console.error(error);
-    }
-
-}
 async function setLeverage(symbol, leverage) {
     const queryString = `symbol=${symbol}&leverage=${leverage}&timestamp=${Date.now()}`;
     const signature = getSignature(queryString)

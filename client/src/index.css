@@ -68,46 +68,56 @@
   position: relative;
   padding: 40px;
 
-  max-width: 80px;
-  max-height: 10px;
+  /*max-width: 100px;*/
+  min-height: 64px;
+  height: 100%;
   width: 100%;
 
   font-size: 22px;
   font-weight: 600;
 
-  margin-bottom: 10px;
+  /*margin-bottom: 10px;*/
 }
 
 .leverage span{
-  position:absolute;
-  top: 8px;
-  left: 12px;
-  font-size:12px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  text-align: center;
+  margin: 0;
+  font-size: 12px;
+  width: 100%;
 }
 
 .leverage .inputLeverage, .leverage .inputLeverage input{
-  position: relative;
+  position: absolute;
   background: none;
   border: none;
   color: #fff;
   font-size: 22px;
   font-weight: 600;
   padding: 0;
-  width: 46px;
+  width: 100%;
   box-shadow: none;
+  text-align: center;
+  left: 0;
+  top: 0;
+  bottom: 0;
 }
 
-.leverage .inputLeverage input{
-  padding: 0 0 0 12px;
-}
 
-.leverage .inputLeverage:before{
-  position: absolute;
-  width: auto;
-  font-size: 22px;
-  /*left: -12px;*/
-  content: "x";
-}
+/*.leverage .inputLeverage input{*/
+/*  padding: 0 0 0 12px;*/
+/*}*/
+
+/*.leverage .inputLeverage:before{*/
+/*  position: absolute;*/
+/*  width: auto;*/
+/*  font-size: 22px;*/
+/*  !*left: -12px;*!*/
+/*  content: "x";*/
+/*}*/
 
 .trend{
   cursor: pointer;
@@ -174,7 +184,7 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
-  /*margin-left: 26px;*/
+  width: 100%;
 }
 
 .profitPanel{
@@ -215,23 +225,22 @@
   align-items: center;
   justify-content: center;
   position: relative;
-  padding: 40px 0 40px;
+  padding: 30px 0 20px;
 
-  max-width: 140px;
   min-height: 64px;
   height: 100%;
-  width: 100vw;
+  width: 100%;
 
   font-size: 22px;
   font-weight: 600;
-
-  margin-bottom: 10px;
 }
 
 .currency span.gold{
   position:absolute;
-  top: 8px;
+  top: 0px;
   left: 0px;
+  right: 0;
+  text-align: center;
   font-size:12px;
 }
 
