@@ -27,11 +27,34 @@ async function createOrder(orderElement, user) {
         opened = true
     let queryElements = [], withoutLossElement = [];
 
+    function roundToFirstSignificantDecimal(number) {
+        // Відокремити цілу частину
+        let integerPart = Math.trunc(number);
+        // Відокремити дробову частину
+        let fractionalPart = number - integerPart;
+
+        // Якщо дробова частина не нульова
+        if (fractionalPart !== 0) {
+            let factor = 1;
+            while (fractionalPart * factor < 1) {
+                factor *= 10;
+            }
+            fractionalPart = Math.ceil(fractionalPart * factor) / factor;
+        }
+
+        // Повернути комбіноване значення
+        return `${integerPart + fractionalPart}`;
+    }
+
+
+
     switch (side) {
         case 'BUY':
             try {
+                const qty = roundToFirstSignificantDecimal((parseFloat(order?.quantity) * parseFloat(order?.leverage))/ parseFloat(order?.currentPrice));
 
-                const qty = ((parseFloat(order?.quantity) * (parseFloat(order?.leverage))) / parseFloat(order?.currentPrice)).toPrecision(1);
+                console.log(parseFloat(order?.quantity) * parseFloat(order?.leverage))
+                console.log(qty)
                 let querySkeleton = {
                     symbol: order?.symbol,
                     positionSide: order?.positionSide,
@@ -53,74 +76,87 @@ async function createOrder(orderElement, user) {
                 axios.post(`https://${user?.binance_test ? TEST_BINANCE_API_DOMAIN : BINANCE_API_DOMAIN}/fapi/v1/order/test?${queryString}&signature=${signature}`, null, {
                     headers,
                 }).then(async (response) => {
-                    console.log(`[${new Date().toLocaleTimeString('uk-UA')}] CREATE ORDER: ${JSON.stringify(querySkeleton)}`)
-                    if (response && !response?.data[0]?.msg) {
+                    try {
+                        console.log(`[${new Date().toLocaleTimeString('uk-UA')}] CREATE ORDER: ${JSON.stringify(querySkeleton)}`)
+                        if (response && !response?.data[0]?.msg) {
 
-                        const orderPos = await createOrders(order,querySkeleton,user)
-                        console.log(orderPos)
-                        let queryStringBatch = `batchOrders=${encodeURIComponent(JSON.stringify([{...querySkeleton}, ...orderPos?.queryElements]))}&timestamp=${Date.now()}`;
-                        const signatureBatch = getSignature(queryStringBatch, key_2)
-                        axios.post(`https://${user?.binance_test ? TEST_BINANCE_API_DOMAIN : BINANCE_API_DOMAIN}/fapi/v1/batchOrders?${queryStringBatch}&signature=${signatureBatch}`, null, {
-                            headers,
-                        }).then(async (responseBatch) => {
+                            const orderPos = await createOrders(order,querySkeleton,user)
 
-                            const TAKE_PROFIT_MARKET = responseBatch?.data?.find(order => order.type === 'TAKE_PROFIT_MARKET');
-                            const TRAILING_STOP_MARKET = responseBatch?.data?.find(order => order.type === 'TRAILING_STOP_MARKET');
+                            let queryStringBatch = `batchOrders=${encodeURIComponent(JSON.stringify([{...querySkeleton}, ...orderPos?.queryElements]))}&timestamp=${Date.now()}`;
+                            const signatureBatch = getSignature(queryStringBatch, key_2)
+                            axios.post(`https://${user?.binance_test ? TEST_BINANCE_API_DOMAIN : BINANCE_API_DOMAIN}/fapi/v1/batchOrders?${queryStringBatch}&signature=${signatureBatch}`, null, {
+                                headers,
+                            }).then(async (responseBatch) => {
 
-                            let queryStringCheck = `symbol=${responseBatch?.data[0].symbol}&orderId=${responseBatch?.data[0].orderId}&timestamp=${Date.now()}`;
-                            const signatureCheck = getSignature(queryStringCheck, key_2)
+                                const TAKE_PROFIT_MARKET = responseBatch?.data?.find(order => order.type === 'TAKE_PROFIT_MARKET');
+                                const TRAILING_STOP_MARKET = responseBatch?.data?.find(order => order.type === 'TRAILING_STOP_MARKET');
 
-                            axios.get(`https://${user?.binance_test ? TEST_BINANCE_API_DOMAIN : BINANCE_API_DOMAIN}/fapi/v1/order?${queryStringCheck}&signature=${signatureCheck}`, {
-                                headers: headers,
-                            }).then(async (response) => {
+                                let queryStringCheck = `symbol=${responseBatch?.data[0].symbol}&orderId=${responseBatch?.data[0].orderId}&timestamp=${Date.now()}`;
+                                const signatureCheck = getSignature(queryStringCheck, key_2)
 
-                                await Order.insertMany({
-                                    positionsId: responseBatch?.data[0].orderId,
-                                    startPrice: response.data.avgPrice,
-                                    leverage: order?.leverage,
-                                    ordersId: {TRAILING_STOP_MARKET ,TAKE_PROFIT_MARKET, macd:orderPos?.ordersId?.macd, withoutLoss:orderPos?.ordersId?.withoutLoss},
-                                    positionData: response.data,
-                                    userId,
-                                    openedConfig: {
-                                        ...querySkeleton,
-                                        quantity: parseFloat(order?.quantity) / parseFloat(response.data.avgPrice)
-                                    },
-                                    currency: order?.symbol,
-                                    opened: true
-                                });
+                                axios.get(`https://${user?.binance_test ? TEST_BINANCE_API_DOMAIN : BINANCE_API_DOMAIN}/fapi/v1/order?${queryStringCheck}&signature=${signatureCheck}`, {
+                                    headers: headers,
+                                }).then(async (response) => {
 
-                                const sybmols = await Order.distinct('currency', {userId: user?._id, opened: true})
+                                    await Order.insertMany({
+                                        positionsId: responseBatch?.data[0].orderId,
+                                        startPrice: response.data.avgPrice,
+                                        leverage: order?.leverage,
+                                        ordersId: {TRAILING_STOP_MARKET ,TAKE_PROFIT_MARKET, macd:orderPos?.ordersId?.macd, withoutLoss:orderPos?.ordersId?.withoutLoss},
+                                        positionData: response.data,
+                                        userId,
+                                        openedConfig: {
+                                            ...querySkeleton,
+                                            quantity: parseFloat(order?.quantity) / parseFloat(response.data.avgPrice)
+                                        },
+                                        currency: order?.symbol,
+                                        opened: true
+                                    });
 
-                                streamPrice(sybmols, user?.token,  user?.binance_test)
+                                    const sybmols = await Order.distinct('currency', {userId: user?._id, opened: true})
 
+                                    streamPrice(sybmols, user?.token,  user?.binance_test)
+
+                                    if (socketIo) {
+                                        socketIo.to(user?.token).emit('userMessage', {
+                                            type: 'success',
+                                            message: `Позиция успешно создана`
+                                        });
+                                        const orders = await Order.find({
+                                            userId: user?._id,
+                                            opened: true
+                                        }).sort({createdAt: -1})
+                                        const modifiedOrders = orders.map(order => {
+                                            const {_id, ...rest} = order.toObject(); // перетворення об'єкта Mongoose на звичайний об'єкт JavaScript
+                                            return {key: _id, ...rest};
+                                        });
+                                        socketIo.to(user?.token).emit('updatePositionCreated', {
+                                            positionList: modifiedOrders,
+                                        });
+                                    }
+                                }).catch((e) => {
+                                    // console.log(e)
+                                    console.log(`[${new Date().toLocaleTimeString('uk-UA')}] ERROR CREATE ORDER STEP 3: ${JSON.stringify(e?.response?.data)}`)
+                                    if (socketIo) {
+                                        socketIo.to(user?.token).emit('userMessage', {
+                                            type: 'error',
+                                            message: `${e?.response?.data?.msg}`
+                                        });
+                                    }
+                                })
+                            }).catch((e) => {
+                                console.log(e)
+                                console.log(`[${new Date().toLocaleTimeString('uk-UA')}] ERROR CREATE ORDER STEP 2: ${JSON.stringify(e?.response?.data)}`)
                                 if (socketIo) {
                                     socketIo.to(user?.token).emit('userMessage', {
-                                        type: 'success',
-                                        message: `Позиция успешно создана`
-                                    });
-                                    const orders = await Order.find({
-                                        userId: user?._id,
-                                        opened: true
-                                    }).sort({createdAt: -1})
-                                    const modifiedOrders = orders.map(order => {
-                                        const {_id, ...rest} = order.toObject(); // перетворення об'єкта Mongoose на звичайний об'єкт JavaScript
-                                        return {key: _id, ...rest};
-                                    });
-                                    socketIo.to(user?.token).emit('updatePositionCreated', {
-                                        positionList: modifiedOrders,
+                                        type: 'error',
+                                        message: `${e?.response?.data?.msg}`
                                     });
                                 }
                             })
-                        }).catch((e) => {
-                            console.log(e)
-                            console.log(`[${new Date().toLocaleTimeString('uk-UA')}] ERROR CREATE ORDER STEP 2: ${JSON.stringify(e?.response?.data)}`)
-                            if (socketIo) {
-                                socketIo.to(user?.token).emit('userMessage', {
-                                    type: 'error',
-                                    message: `${e?.response?.data?.msg}`
-                                });
-                            }
-                        })
+                        }
+                    } catch (e){
+                        console.error(e)
                     }
                 }).catch((e) => {
                     console.log(`[${new Date().toLocaleTimeString('uk-UA')}] ERROR CREATE ORDER: ${JSON.stringify(e?.response?.data)}`)
@@ -552,8 +588,14 @@ function createOrders(order,querySkeleton, user){
                 takeProfitQuery.stopPrice = `${(order?.take_profit?.currentPrice - percentPrice).toFixed(2)}`;
             }
         } else {
-            takeProfitQuery.stopPrice = `${(order?.take_profit?.stopPrice).toFixed(2)}`;
+
+            if (order?.positionSide === 'LONG') {
+                takeProfitQuery.stopPrice = `${((parseFloat(order?.take_profit?.stopPrice)/(parseFloat(order?.quantity)/parseFloat(order?.take_profit?.currentPrice)))+parseFloat(order?.take_profit?.currentPrice)).toFixed(2)}`;
+            } else if (order?.positionSide === 'SHORT') {
+                takeProfitQuery.stopPrice = `${(parseFloat(order?.take_profit?.currentPrice)-(parseFloat(order?.take_profit?.stopPrice)/(parseFloat(order?.quantity)/parseFloat(order?.take_profit?.currentPrice)))).toFixed(2)}`;
+            }
         }
+
         queryElements.push(takeProfitQuery);
     }
     if (order?.macd?.status && !order?.withoutLoss?.status) {
@@ -580,7 +622,12 @@ function createOrders(order,querySkeleton, user){
             if (order?.trailing?.percent) {
                 trailingStopMarketQuery.callbackRate = `${(order?.trailing?.stopPrice).toFixed(2)}`;
             } else {
-                trailingStopMarketQuery.callbackRate = `${((order?.trailing?.stopPrice / order?.trailing?.currentPrice) * 100).toFixed(2)}`;
+                let result = (((parseFloat(order?.trailing?.stopPrice)/((parseFloat(order?.quantity)/parseFloat(order?.trailing?.currentPrice))*parseFloat(order?.leverage)))+parseFloat(order?.trailing?.currentPrice))-parseFloat(order?.trailing?.currentPrice))
+
+                let str = result.toString();
+                let index = str.indexOf(".");
+                let finalPercentResult = parseFloat(str.slice(0, index + 2));
+                trailingStopMarketQuery.callbackRate = `${finalPercentResult}`;
             }
 
             queryElements.push(trailingStopMarketQuery);

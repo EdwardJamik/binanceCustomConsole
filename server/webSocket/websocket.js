@@ -179,9 +179,9 @@ io.on('connection', (socket) => {
                 amount: data.value,
             }
 
-            io.to(socket.id).emit('userData', {
+            io.to(user?._id).emit('userData', {
                 currentOption: userData,
-                binance_test:user?.binance_test,
+                binance_test: user?.binance_test,
                 auth: true,
             });
 

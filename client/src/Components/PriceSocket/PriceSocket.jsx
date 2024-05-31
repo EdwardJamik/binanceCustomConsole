@@ -17,12 +17,13 @@ export const SocketPrice = ({ children }) => {
 
     const wsRef = useRef(null);
 
-    console.log(type_binance)
     useEffect(() => {
+
         if (symbol !== null && type_binance !== null) {
 
             const ws = new WebSocket(`wss://${type_binance ? BINANCE_TEST_SOCKET_API : BINANCE_SOCKET_API}/ws/${symbol.toLowerCase()}@trade`);
             wsRef.current = ws;
+            let keepAliveIntervalId;
 
             ws.onopen = () => {
                 console.log(`[ONOPEN] Open price socket`);
@@ -42,11 +43,17 @@ export const SocketPrice = ({ children }) => {
 
             ws.onclose = () => {
                 console.log(`[ONCLOSE] Close price socket`);
+                if(symbol !== null && wsRef.current === ws){
+                    const newWS = new WebSocket(`wss://${type_binance ? BINANCE_TEST_SOCKET_API : BINANCE_SOCKET_API}/ws/${symbol.toLowerCase()}@trade`);
+                    wsRef.current = newWS;
+                    keepAliveIntervalId = ''
+                    console.log(`[ONCLOSE - RECCONECTED] Close price socket`);
+                }
             };
 
             ws.onmessage = event => {
                 const { p, s } = JSON.parse(event.data);
-                const strNumber = p.toString();
+                const strNumber = String(p);
                 const decimalIndex = strNumber.indexOf('.');
 
                 if (symbol === s) {
@@ -72,6 +79,12 @@ export const SocketPrice = ({ children }) => {
                     });
                     ws.close();
                 }
+
+                keepAliveIntervalId = setInterval(() => {
+                    if (ws.readyState === WebSocket.OPEN) {
+                        ws.send(JSON.stringify({ type: 'keepalive' }));
+                    }
+                }, 30000);
             };
 
             // Очищення при розмонтаженні компонента або зміні символу
@@ -79,11 +92,15 @@ export const SocketPrice = ({ children }) => {
                 if (wsRef.current) {
                     wsRef.current.close();
                 }
+                // Очищуємо інтервал "keep-alive"
+                if (keepAliveIntervalId) {
+                    clearInterval(keepAliveIntervalId);
+                }
             };
         } else {
             setPriceUpdates({ price: 0, position: true, symbol: symbol });
         }
-    }, [symbol,type_binance]);
+    }, [symbol,type_binance!==null]);
 
 
     return (

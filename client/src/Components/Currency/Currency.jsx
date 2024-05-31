@@ -105,9 +105,13 @@ const Currency = () => {
                 openNotificationWithIcon('warning', 'Warning', 'БУ не может работат с Take Profi');
             }
         } else if (type === 3) {
-            const value = {...userData, trailing: {...userData.trailing, status: checked}}
-            dispatch({type: 'SET_USER_DATA', payload: value});
-            socket.emit('setUserData', {value});
+            if(!user?.takeProfit?.status) {
+                const value = {...userData, trailing: {...userData.trailing, status: checked}}
+                dispatch({type: 'SET_USER_DATA', payload: value});
+                socket.emit('setUserData', {value});
+            } else{
+                openNotificationWithIcon('warning', 'Warning', 'Trailing не может работат с Take Profi');
+            }
         } else if (type === 4) {
             if(!user?.takeProfit?.status) {
                 const value = {...userData, macd: {...userData.macd, status: checked}}
@@ -546,7 +550,7 @@ const Currency = () => {
                 }
 
                 {user?.trailing?.status && user?.currency === symbol ?
-                    <div className='dashboard_item' style={{height:'80px',padding: '10px'}}>
+                    <div className='dashboard_item' style={{padding: '10px'}}>
                         <Badge.Ribbon text="Trailing" style={{top: '-20px', right:'-18px', background: 'rgba(240, 216, 90, 0.4)'}}>
 
                             <AmountPosition type='trailing'/>

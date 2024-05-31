@@ -48,13 +48,13 @@ async function cancelOrder(symbol, orderId, dbId, socket) {
                         const { _id, ...rest } = order.toObject(); // перетворення об'єкта Mongoose на звичайний об'єкт JavaScript
                         return { key: _id, ...rest };
                     });
-                    io.to(user?.token).emit('updatePositionCreated', {
+                    socketIo.to(user?.token).emit('updatePositionCreated', {
                         positionList: modifiedOrders,
                     });
-                    io.to(user?.token).emit('updatePositionBefore', {
+                    socketIo.to(user?.token).emit('updatePositionBefore', {
                         positionList: modifiedBeforeOrders,
                     });
-                    io.to(user?.token).emit('userMessage', {
+                    socketIo.to(user?.token).emit('userMessage', {
                         type: 'success',
                         message: `${response?.data?.type} успешно отменен`
                     });
@@ -64,7 +64,7 @@ async function cancelOrder(symbol, orderId, dbId, socket) {
         }
 
     } catch (error) {
-        console.error(error.response.data)
+        console.error(error)
         return null
     }
 }

@@ -1,5 +1,5 @@
 import React, {createContext, useContext, useEffect} from 'react';
-import io from 'socket.io-client';
+import {io} from 'socket.io-client';
 import {openNotificationWithIcon} from "../Notification/NotificationService.jsx";
 import {useCookies} from "react-cookie";
 import {useDispatch} from "react-redux";

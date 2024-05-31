@@ -144,7 +144,7 @@ async function createEventsSocket(binance_test,key_1,key_2) {
                         });
 
                         const message = `#${s} продажа по рынку\n\nКол-во: ${q}\nЦена покупки: ${updatedPosition?.startPrice}\n\nЦена продажи: ${ap}\nСумма: ${(parseFloat(q) * parseFloat(ap)).toFixed(4)}\nПрибыль: ${rp}\n\nid: ${updatedPosition?._id}`
-                        bot.telegram.sendMessage(findUser?.chat_id, message)
+                        bot.telegram.sendMessage(findUser?.chat_id, message).catch((e)=>{`[${new Date().toLocaleTimeString('uk-UA')}] ERROR SEND TELEGRAM`})
                     }
                 } else if(ot === 'TRAILING_STOP_MARKET' && R){
                     const updatedPosition = await Order.findOneAndUpdate({"ordersId.TRAILING_STOP_MARKET.orderId":i},{opened: false,ClosePositionData:parsedData?.o,"ordersId.TRAILING_STOP_MARKET.closed":true},
@@ -190,7 +190,7 @@ async function createEventsSocket(binance_test,key_1,key_2) {
                     });
 
                     const message = `#${s} продажа по рынку\n\nКол-во: ${q}\nЦена покупки: ${updatedPosition?.startPrice}\n\nЦена продажи: ${ap}\nСумма: ${(parseFloat(q) * parseFloat(ap)).toFixed(4)}\nПрибыль: ${rp}\n\nid: ${updatedPosition?._id}`
-                    bot.telegram.sendMessage(findUser?.chat_id, message)
+                    bot.telegram.sendMessage(findUser?.chat_id, message).catch((e)=>{`[${new Date().toLocaleTimeString('uk-UA')}] ERROR SEND TELEGRAM`})
                 }
 
 

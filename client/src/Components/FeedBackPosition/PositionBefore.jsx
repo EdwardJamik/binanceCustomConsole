@@ -24,6 +24,20 @@ const PositionBefore = () => {
         socket.emit('createOrder', {order});
     }
 
+    function trimToFirstInteger(num) {
+        let strNum = num.toString();
+        let dotIndex = strNum.indexOf('.');
+        if (dotIndex === -1 || dotIndex === strNum.length - 1) {
+            return num;
+        } else {
+            let nextDigitIndex = dotIndex + 1;
+            while (nextDigitIndex < strNum.length && strNum[nextDigitIndex] === '0') {
+                nextDigitIndex++;
+            }
+            return parseFloat(strNum.slice(0, nextDigitIndex + 1));
+        }
+    }
+
     const columns = [
         {
             title: '',
@@ -79,6 +93,37 @@ const PositionBefore = () => {
             render: (_,record) => <>{(parseFloat(record?.openedConfig?.quantity)*parseFloat(record?.startPrice)).toFixed(2)} ({`${(parseFloat(record?.openedConfig?.quantity)).toPrecision(2)}`})</>,
         },
         {
+            title: 'Прибыль',
+            dataIndex: 'ClosePositionData',
+            key: 'ClosePositionData',
+            align: 'center',
+            width: '200px',
+            render: (_, record) => {
+
+
+                let result = 0
+                if(record?.ClosePositionData?.rp){
+                    const precent = parseFloat(record?.ClosePositionData?.rp)-parseFloat(record?.ClosePositionData?.cr)
+                    return precent.toFixed(2)
+                 } else{
+                    const currentSize = (parseFloat(record?.positionData?.cumQuote) - parseFloat(record?.ClosePositionData?.cumQuote))
+                    const precent = (parseFloat(currentSize) * parseFloat(record?.ClosePositionData?.avgPrice) * parseFloat(commission.commissionTaker))
+                    return currentSize
+                }
+
+                // {record?.ClosePositionData?.rp ? parseFloat(record?.ClosePositionData?.rp)-parseFloat(record?.ClosePositionData?.AP) : 0}
+                // if ((user.minCurrencyPrice * price).toFixed(2) > parseFloat(user?.amount))
+                    // dispatch({type: 'SET_SIZE', payload: parseFloat((user.minCurrencyPrice * price))});
+
+                // const precent = (trimToFirstInteger(parseFloat(currentSize) * parseFloat(user?.adjustLeverage)) * parseFloat(price) * parseFloat(commission.commissionTaker))
+
+                // setPrecent((prevState) => Math.max(precent))
+
+            }
+        },
+    // const message = `#${s} продажа по рынку\n\nКол-во: ${q}\nЦена покупки: ${updatedPosition?.startPrice}\n\nЦена продажи: ${ap}\nСумма: ${(parseFloat(q) * parseFloat(ap)).toFixed(4)}\nПрибыль: ${rp}\n\nid: ${updatedPosition?._id}`
+
+    {
             title: '',
             dataIndex: 'currency',
             key: 'currency_2',

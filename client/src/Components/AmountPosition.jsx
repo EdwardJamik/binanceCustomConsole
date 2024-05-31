@@ -84,7 +84,8 @@ const AmountPosition = ({type}) => {
                 addonAfter={selectAfter}
                 value={user[`${type}`].price}
                 onChange={(value)=>{handleAmountChange(value)}}
-                min={type === 'withoutLoss' ? 0.0000000001 : 0.1}
+                min={type === 'withoutLoss' ? 0.1 : type === 'trailing' && user[`${type}`].procent ? 0.1 : 0.1}
+                max={type === 'trailing' && user[`${type}`].procent ? 10 : user[`${type}`].procent ? 100 : 10000 }
                 step={0.1}
                 defaultValue={amount}
             />
@@ -95,18 +96,89 @@ const AmountPosition = ({type}) => {
                             color: 'rgb(14, 203, 129,0.8)',
                             fontWeight: '200',
                             padding: '0 10px'
-                        }}>Long - <span style={{fontWeight:'600',fontSize:'16px'}}>{((parseFloat(price) * user[`${type}`].price / 100) + parseFloat(price)).toFixed(2)}</span></span>
+                        }}>Long: <span style={{fontWeight:'600',fontSize:'16px'}}>{((parseFloat(price) * user[`${type}`].price / 100) + parseFloat(price)).toFixed(2)}</span></span>
                         <br/>
                         <span style={{
                             fontSize: '14px',
                             color: 'rgb(246, 70, 93,0.8)',
                             fontWeight: '200',
                             padding: '0 10px'
-                        }}>Short - <span style={{fontWeight:'600',fontSize:'16px'}}>{(parseFloat(price) - (parseFloat(price) * user[`${type}`].price / 100)).toFixed(2)}</span></span>
+                        }}>Short: <span style={{fontWeight:'600',fontSize:'16px'}}>{(parseFloat(price) - (parseFloat(price) * user[`${type}`].price / 100)).toFixed(2)}</span></span>
                     </>
                     :
-                    <></>
+                    type === 'takeProfit' && !user[`${type}`].procent ?
+                    <>
+                        <span style={{
+                            fontSize: '14px',
+                            color: 'rgb(14, 203, 129,0.8)',
+                            fontWeight: '200',
+                            padding: '0 10px'
+                        }}>Long: <span style={{fontWeight:'600',fontSize:'16px'}}>{
+                            ((parseFloat(user[`${type}`].price)/((parseFloat(user?.amount)/parseFloat(price))*parseFloat(user?.adjustLeverage)))+parseFloat(price)).toFixed(2)
+                        }</span></span>
+                        <br/>
+
+                            <span style={{
+                            fontSize: '14px',
+                            color: 'rgb(246, 70, 93,0.8)',
+                            fontWeight: '200',
+                            padding: '0 10px'
+                        }}>Short: <span style={{fontWeight: '600', fontSize: '16px'}}>
+                                { (parseFloat(price)-(parseFloat(user[`${type}`].price) / ((parseFloat(user?.amount) / parseFloat(price)) * parseFloat(user?.adjustLeverage)))).toFixed(2) >= 0 ?
+                                (parseFloat(price)-(parseFloat(user[`${type}`].price) / ((parseFloat(user?.amount) / parseFloat(price)) * parseFloat(user?.adjustLeverage)))).toFixed(2)
+                                    :
+                                    0
+                                }
+                        </span></span>
+                    </>
+                        :
+                        <></>
                 }
+                {type === 'trailing' && user[`${type}`].procent ?
+                    <>
+                        <span style={{
+                            fontSize: '14px',
+                            color: 'rgb(14, 203, 129,0.8)',
+                            fontWeight: '200',
+                            padding: '0 10px'
+                        }}>Long: <span style={{fontWeight:'600',fontSize:'16px'}}>{
+                            ((parseFloat(price) * user[`${type}`].price / 100) + parseFloat(price)).toFixed(2)
+                        }</span></span>
+                        <br/>
+                        <span style={{
+                            fontSize: '14px',
+                            color: 'rgb(246, 70, 93,0.8)',
+                            fontWeight: '200',
+                            padding: '0 10px'
+                        }}>Short: <span style={{fontWeight:'600',fontSize:'16px'}}>{(parseFloat(price) - (parseFloat(price) * user[`${type}`].price / 100)).toFixed(2)}</span></span>
+                    </>
+                    :
+                    type === 'trailing' && !user[`${type}`].procent ?
+                        (()=>{
+                            let result = (((parseFloat(user[`${type}`].price)/((parseFloat(user?.amount)/parseFloat(price))*parseFloat(user?.adjustLeverage)))+parseFloat(price))-parseFloat(price))
+                            // let result = ((parseFloat(user[`${type}`].price)/((parseFloat(user?.amount)/parseFloat(price))*parseFloat(user?.adjustLeverage)))+parseFloat(price))
+
+                            let str = result.toString();
+                            let index = str.indexOf(".");
+                            let finalPercentResult = parseFloat(str.slice(0, index + 2));
+
+                            return (
+                                <>
+                                <span style={{
+                                    fontSize: '14px',
+                                    color: 'rgb(14, 203, 129,0.8)',
+                                    fontWeight: '200',
+                                    padding: '0 10px'
+                                }}>Trainling: <span style={{fontWeight:'600',fontSize:'16px'}}>
+                                    {finalPercentResult}%
+                                </span></span>
+                                </>
+                            )
+                        })()
+                        :
+                        <></>
+                }
+                {/*trailing*/}
                 {type === 'withoutLoss' ?
                     (()=>{
                         const currentSize =  (parseFloat(user?.amount)/parseFloat(price))
