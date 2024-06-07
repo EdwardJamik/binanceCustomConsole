@@ -25,14 +25,13 @@ mongoose.connect(mongoURL, {
         app.listen(PORT, () => console.log(`Server running on PORT : ${PORT}`));
         bot.launch().then(() => console.log('Bot is running')).catch((err) => console.error(err));
 
-        // const checkSocketPriceOrders = await Order.findOne({opened: true})
-        // if (checkSocketPriceOrders) {
-        //     const user = await User.findOne({_id: checkSocketPriceOrders?.userId})
-        //     const userApis = getUserApi(user)
-        //     let key_1 = userApis?.key_1, key_2 = userApis?.key_2
-        //     console.log('START APPS ON EVENT: ', user?._id, key_1, key_2)
-        //     createEventsSocket(user?.binance_test, key_1, key_2)
-        // }
+        const checkSocketPriceOrders = await Order.findOne({opened: true})
+        if (checkSocketPriceOrders) {
+            const user = await User.findOne({_id: checkSocketPriceOrders?.userId})
+            const userApis = getUserApi(user)
+            console.log('START APPS ON EVENT: ', user?._id, userApis?.key_1, userApis?.key_2)
+            createEventsSocket(user?.binance_test, userApis?.key_1, userApis?.key_2)
+        }
 
     })
     .catch(err => console.log(err));

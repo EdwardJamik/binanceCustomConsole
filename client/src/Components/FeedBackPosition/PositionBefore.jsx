@@ -131,7 +131,7 @@ const PositionBefore = () => {
                         <div><span style={{
                             color: result > 0 ? 'rgb(14, 203, 129,0.8)' : 'rgba(246, 70, 93, 0.8)',
                             fontSize: '16px'
-                        }}>{result}</span></div>
+                        }}>{profit} ({percent}%)</span></div>
                         <span style={{fontSize: '12px'}}>Грязная прибыль: {parseFloat(currentSize).toFixed(6)}</span>
                         <span style={{fontSize: '12px'}}>Комиссия открытия: {parseFloat(record?.commission).toFixed(6)}</span>
                         <span style={{fontSize: '12px'}}>Комиссия закрытия: {parseFloat(precent).toFixed(6)}</span>

@@ -381,7 +381,7 @@ function createOrders(order,querySkeleton, user){
 
             queryElements.push(trailingStopMarketQuery);
         }
-        else if(order?.withoutLoss?.status){
+        else if(order?.withoutLoss?.status && order?.trailing?.status){
 
             const cross = order?.withoutLoss?.percent && order?.withoutLoss?.status ? ((parseFloat(order?.withoutLoss?.currentPrice) * parseFloat(order?.withoutLoss?.stopPrice))/100) : parseFloat(order?.withoutLoss?.stopPrice)
             const fee = ((parseFloat(order?.quantity)*parseFloat(order?.leverage))*parseFloat(order?.withoutLoss?.currentPrice)*(parseFloat(order?.withoutLoss?.commission)*2))
@@ -430,7 +430,6 @@ function createOrders(order,querySkeleton, user){
 
 
             }
-
 
             function createTrailing(activationPrice){
                 let trailingStopMarketQuery = {...querySkeleton};
