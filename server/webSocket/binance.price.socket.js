@@ -67,49 +67,130 @@ function streamPrice(symbol,id,type_binance) {
 
 async function fixedWithouLoss(symbol,price) {
     try {
-        const findOrder = await Order.findOneAndUpdate({
+        const findOrder = await Order.find({
             opened: true,
             currency: symbol,
-            "ordersId.withoutLoss.fixedPrice": {$gt: price},
-            "ordersId.withoutLoss.fixed": false
-        }, {
-            "ordersId.withoutLoss.fixed": true
-        }, {returnDocument: 'after'});
+            "ordersId.withoutLoss.fixed": false,
+        })
 
-        const findCloseOrder = await Order.findOneAndUpdate({
-            opened: true,
-            currency: symbol,
-            "ordersId.withoutLoss.fixedPrice": {$lt: price},
-            "ordersId.withoutLoss.fixed": true
-        }, {
-            "ordersId.withoutLoss.fixed": true
-        }, {returnDocument: 'after'});
 
-        if (findOrder) {
-            const user = await User.findOne({_id: findOrder?.userId})
-            console.log(`[${new Date().toLocaleTimeString('uk-UA')}] FIXED POSITION: ${JSON.stringify(findOrder)}`)
-            const orders = await Order.find({
-                userId: user?._id,
-                opened: true
-            }).sort({createdAt: -1})
+        for (const order of findOrder){
+            if(order?.openedConfig?.positionSide === 'LONG' && parseFloat(order?.withoutLoss?.fixedPrice) <= price ){
+                if(!order?.withoutLoss?.fixed){
+                    await Order.findOneAndUpdate({
+                        _id:order?._id,
+                        opened: true,
+                        currency: symbol,
+                        "ordersId.withoutLoss.fixed": false,
+                    }, {
+                        "ordersId.withoutLoss.fixed": true
+                    }, {returnDocument: 'after'});
 
-            const modifiedOrders = orders.map(order => {
-                const {_id, ...rest} = order.toObject();
-                return {key: _id, ...rest};
-            });
+                    const user = await User.findOne({_id: order?.userId})
+                    console.log(`[${new Date().toLocaleTimeString('uk-UA')}] FIXED POSITION: ${JSON.stringify(order)}`)
+                    const orders = await Order.find({
+                        userId: user?._id,
+                        opened: true
+                    }).sort({createdAt: -1})
 
-            socketServer.socketServer.io.to(id).emit('updatePositionCreated', {
-                positionList: modifiedOrders,
-            });
-        } else if (findCloseOrder) {
-            const user = await User.findOne({_id: findCloseOrder?.userId})
-            console.log(`[${new Date().toLocaleTimeString('uk-UA')}] CLOSE FIXED POSITION: ${JSON.stringify(findCloseOrder)}`)
-            const order = {
-                ...findCloseOrder?.openedConfig,
-                side: findCloseOrder?.openedConfig?.positionSide === 'LONG' ? 'SELL' : 'BUY'
+                    const modifiedOrders = orders.map(order => {
+                        const {_id, ...rest} = order.toObject();
+                        return {key: _id, ...rest};
+                    });
+
+                    socketServer.socketServer.io.to(user?.token).emit('updatePositionCreated', {
+                        positionList: modifiedOrders,
+                    });
+                } else {
+                    const user = await User.findOne({_id: order?.userId})
+                    console.log(`[${new Date().toLocaleTimeString('uk-UA')}] CLOSE FIXED POSITION: ${JSON.stringify(order)}`)
+                    const orderConf = {
+                        ...order?.openedConfig,
+                        positionSide: order?.openedConfig?.positionSide === 'LONG' ? 'SELL' : 'BUY'
+                    }
+                    createOrder({order:{...orderConf}}, user, user?.token)
+                }
+            } else if(order?.openedConfig?.positionSide === 'SHORT' && parseFloat(order?.withoutLoss?.fixedPrice) >= price){
+                if(!order?.withoutLoss?.fixed){
+                    await Order.findOneAndUpdate({
+                        _id:order?._id,
+                        opened: true,
+                        currency: symbol,
+                        "ordersId.withoutLoss.fixed": false,
+                    }, {
+                        "ordersId.withoutLoss.fixed": true
+                    }, {returnDocument: 'after'});
+
+                    const user = await User.findOne({_id: order?.userId})
+                    console.log(`[${new Date().toLocaleTimeString('uk-UA')}] FIXED POSITION: ${JSON.stringify(order)}`)
+                    const orders = await Order.find({
+                        userId: user?._id,
+                        opened: true
+                    }).sort({createdAt: -1})
+
+                    const modifiedOrders = orders.map(order => {
+                        const {_id, ...rest} = order.toObject();
+                        return {key: _id, ...rest};
+                    });
+
+                    socketServer.socketServer.io.to(user?.token).emit('updatePositionCreated', {
+                        positionList: modifiedOrders,
+                    });
+                } else {
+                    const user = await User.findOne({_id: order?.userId})
+                    console.log(`[${new Date().toLocaleTimeString('uk-UA')}] CLOSE FIXED POSITION: ${JSON.stringify(order)}`)
+                    const orderConf = {
+                        ...order?.openedConfig,
+                        positionSide: order?.openedConfig?.positionSide === 'LONG' ? 'SELL' : 'BUY'
+                    }
+                    createOrder({order:{...orderConf}}, user, user?.token)
+                }
             }
-            createOrder(order, user, user?.token)
         }
+        // console.log(findOrder)
+
+        // // const findOrder = await Order.findOneAndUpdate({
+        // //     opened: true,
+        // //     currency: symbol,
+        // //     "ordersId.withoutLoss.fixed": false,
+        // // }, {
+        // //     "ordersId.withoutLoss.fixed": true
+        // // }, {returnDocument: 'after'});
+        //
+        // const findCloseOrder = await Order.findOneAndUpdate({
+        //     opened: true,
+        //     currency: symbol,
+        //     "ordersId.withoutLoss.fixedPrice": {$lt: price},
+        //     "ordersId.withoutLoss.fixed": true
+        // }, {
+        //     "ordersId.withoutLoss.fixed": true
+        // }, {returnDocument: 'after'});
+        //
+        // if (findOrder) {
+        //     const user = await User.findOne({_id: findOrder?.userId})
+        //     console.log(`[${new Date().toLocaleTimeString('uk-UA')}] FIXED POSITION: ${JSON.stringify(findOrder)}`)
+        //     const orders = await Order.find({
+        //         userId: user?._id,
+        //         opened: true
+        //     }).sort({createdAt: -1})
+        //
+        //     const modifiedOrders = orders.map(order => {
+        //         const {_id, ...rest} = order.toObject();
+        //         return {key: _id, ...rest};
+        //     });
+        //
+        //     socketServer.socketServer.io.to(id).emit('updatePositionCreated', {
+        //         positionList: modifiedOrders,
+        //     });
+        // } else if (findCloseOrder) {
+        //     const user = await User.findOne({_id: findCloseOrder?.userId})
+        //     console.log(`[${new Date().toLocaleTimeString('uk-UA')}] CLOSE FIXED POSITION: ${JSON.stringify(findCloseOrder)}`)
+        //     const order = {
+        //         ...findCloseOrder?.openedConfig,
+        //         positionSide: findCloseOrder?.openedConfig?.positionSide === 'LONG' ? 'SELL' : 'BUY'
+        //     }
+        //     createOrder({order:{...order}}, user, user?.token)
+        // }
     } catch (e) {
         console.error(e)
     }

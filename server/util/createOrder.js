@@ -15,6 +15,7 @@ const {getAvailableBalance} = require("./getBalance");
 async function createOrder(orderElement, user, id) {
     const {order} = orderElement;
 
+    console.log(orderElement)
     const side = order.positionSide === 'LONG' && order?.side === 'BUY' || order?.positionSide === 'SHORT' && order?.side === 'SELL' ? 'BUY' : 'SELL'
 
     let userId = user?._id
@@ -97,7 +98,7 @@ async function createOrder(orderElement, user, id) {
                                 userId,
                                 openedConfig: {
                                     ...querySkeleton,
-                                    quantity: parseFloat(order?.quantity) / parseFloat(response.data.avgPrice),
+                                    quantity: qty,
                                     commission: parseFloat(order?.commission)
                                 },
                                 currency: order?.symbol,
@@ -254,7 +255,7 @@ async function createOrder(orderElement, user, id) {
 
                             removeStreamPrice(user?.token)
                         }).catch((e) => {
-                            console.log(`[${new Date().toLocaleTimeString('uk-UA')}] ERROR CANCELED ADMIN ORDER STEP 2: ${JSON.stringify(e.response.data)}`)
+                            console.log(`[${new Date().toLocaleTimeString('uk-UA')}] ERROR CANCELED ADMIN ORDER STEP 2: ${e}`)
                             socketServer.socketServer.io.to(id).emit('userMessage', {
                                 type: 'error',
                                 message: `Ошибка закрытия позиции: ${e?.response?.data?.msg}`

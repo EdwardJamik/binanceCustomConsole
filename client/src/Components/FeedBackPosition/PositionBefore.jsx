@@ -123,7 +123,12 @@ const PositionBefore = () => {
                     </div>
                  } else if(record?.ClosePositionData){
 
-                    const currentSize = (parseFloat(record?.ClosePositionData?.cumQuote) - parseFloat(record?.positionData?.cumQuote)) - parseFloat(record?.commission)
+                    let currentSize = 0
+                    if (record?.openedConfig?.positionSide === 'SHORT')
+                        currentSize = (parseFloat(record?.positionData?.cumQuote)-parseFloat(record?.ClosePositionData?.cumQuote)) - parseFloat(record?.commission)
+                   else
+                        currentSize = (parseFloat(record?.ClosePositionData?.cumQuote) - parseFloat(record?.positionData?.cumQuote)) - parseFloat(record?.commission)
+
                     const precent = parseFloat(record?.ClosePositionData?.cumQuote)*parseFloat(record?.openedConfig?.commission)
                     const result = (currentSize - precent).toFixed(6)
 
@@ -132,7 +137,7 @@ const PositionBefore = () => {
                             color: result > 0 ? 'rgb(14, 203, 129,0.8)' : 'rgba(246, 70, 93, 0.8)',
                             fontSize: '16px'
                         }}>{parseFloat(currentSize).toFixed(2)} ({parseFloat(precent).toFixed(2)}%)</span></div>
-                        <span style={{fontSize: '12px'}}>Грязная прибыль: {parseFloat(currentSize).toFixed(6)}</span>
+                        {/*<span style={{fontSize: '12px'}}>Грязная прибыль: {parseFloat(currentSize).toFixed(6)}</span>*/}
                         <span style={{fontSize: '12px'}}>Комиссия открытия: {parseFloat(record?.commission).toFixed(6)}</span>
                         <span style={{fontSize: '12px'}}>Комиссия закрытия: {parseFloat(precent).toFixed(6)}</span>
                     </div>

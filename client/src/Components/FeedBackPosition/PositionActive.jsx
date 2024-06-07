@@ -83,7 +83,7 @@ const PositionActive = () => {
             align:'center',
             width:'200px',
             render: (_,record) => <>
-                {parseFloat(record?.leverage) > 1 ? `${(parseFloat(record?.positionData?.cumQuote)/parseFloat(record?.leverage)).toFixed(2)}/${(parseFloat(record?.positionData?.cumQuote)-(parseFloat(record?.positionData?.cumQuote)/parseFloat(record?.leverage))).toFixed(2)} (${parseFloat(record?.positionData?.origQty)})`
+                {parseFloat(record?.leverage) > 1 ? `${(parseFloat(record?.positionData?.cumQuote)/parseFloat(record?.leverage)).toFixed(2)}/${parseFloat(record?.positionData?.cumQuote)} (${parseFloat(record?.positionData?.origQty)})`
                 :
                     `${(parseFloat(record?.positionData?.cumQuote)/parseFloat(record?.leverage)).toFixed(2)} (${parseFloat(record?.positionData?.origQty)})`
                 }
