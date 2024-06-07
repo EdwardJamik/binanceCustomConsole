@@ -12,13 +12,13 @@ export const SocketPrice = ({ children }) => {
     const type_binance = useSelector(state => state.type_binance) ? true : false;
     const dispatch = useDispatch();
     const [priceUpdates, setPriceUpdates] = useState({ price: 0, position: true, symbol: symbol });
+    const [currenctPrice, setCurrenctPrice] = useState('');
     const socketPrice = useSelector(state => state.socketPrice);
 
     const wsRef = useRef(null);
 
     useEffect(() => {
 
-        console.log(socketPrice)
         if (!symbol || type_binance === null) {
             setPriceUpdates({ price: 0, position: true, symbol: symbol });
             return;
@@ -33,6 +33,7 @@ export const SocketPrice = ({ children }) => {
 
             ws.onopen = () => {
                 console.log(`[ONOPEN] Open price socket ${symbol}`);
+                setCurrenctPrice(symbol)
                 axios.get(httpUrl).then((response) => {
                     const p = response.data.price;
                     updatePrice(p);
@@ -49,6 +50,7 @@ export const SocketPrice = ({ children }) => {
             ws.onclose = () => {
                 console.log(`[ONCLOSE] Close price socket ${symbol}`);
 
+                if(symbol === currenctPrice)
                 setTimeout(connectWebSocket, 500);
             };
 

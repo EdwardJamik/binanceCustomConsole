@@ -85,12 +85,17 @@ const Currency = () => {
 
     }, [price,user?.amount,user?.adjustLeverage]);
 
-    const onChangeSize = (value) => {
+    const onChangeSize = (value,before) => {
         const currentSize =  (parseFloat(value)/parseFloat(price)).toFixed(2)
         const precent = (trimToFirstInteger(parseFloat(currentSize)*parseFloat(user?.adjustLeverage))*parseFloat(price)*parseFloat(commission.commissionTaker))
         setPrecent(precent)
-        dispatch({type: 'SET_SIZE', payload: parseFloat(value)});
-        socket.emit('setSize', {value, symbol, user});
+        // dispatch({type: 'SET_SIZE', payload: parseFloat(value)});
+        // socket.emit('setSize', {value, symbol, user});
+        if (!before) {
+            dispatch({type: 'SET_SIZE', payload: parseFloat(value)});
+        } else {
+            socket.emit('setSize', {value, symbol, user});
+        }
     };
 
     useEffect(() => {
@@ -333,7 +338,8 @@ const Currency = () => {
                                     min={(user.minCurrencyPrice * price).toFixed(2)}
                                     value={parseFloat(user.amount).toFixed(2)}
                                     step={0.1}
-                                    onChange={(value) => onChangeSize(value)}
+                                    onChange={(value) => onChangeSize(value, false)}
+                                    onBlur={() => onChangeSize(user?.amount, true)}
                                     changeOnWheel
                                     style={{width: `100%`}}
                                 />
