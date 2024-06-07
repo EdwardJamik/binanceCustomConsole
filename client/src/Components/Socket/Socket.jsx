@@ -13,7 +13,7 @@ export const SocketProvider = ({ children }) => {
     const [cookies, removeCookie] = useCookies();
     const dispatch = useDispatch();
 
-    let mainSocket = cookies?.token ? io.connect("http://localhost:5050") : false
+    let mainSocket = cookies?.token ? io.connect(`${import.meta.env.VITE_SOCKET_API}`) : false
 
     useEffect(() => {
         if (mainSocket) {
@@ -36,16 +36,12 @@ export const SocketProvider = ({ children }) => {
             });
 
             mainSocket.on("userData", (data) => {
-                dispatch({type: 'SET_AUTHENTICATION_STATUS', payload: data.auth});
-                if (data.currentOption)
-                    dispatch({type: 'SET_USER_DATA', payload: data.currentOption});
 
-                if (data.symbol)
-                    dispatch({type: 'SET_SYMBOL', payload: data.symbol});
+                if(data.auth)
+                    dispatch({type: 'SET_AUTHENTICATION_STATUS', payload: data.auth});
 
-                if (data.binance_test)
-                    dispatch({type: 'SET_TYPE_BINANCE', payload: data.binance_test});
-
+                if (data)
+                    dispatch({type: 'SET_USER_DATA', payload: data});
             });
 
             mainSocket.on("updatePosition", (data) => {
@@ -57,7 +53,6 @@ export const SocketProvider = ({ children }) => {
             });
 
             mainSocket.on("updatePositionBefore", (data) => {
-                console.log(data)
                 dispatch({type: 'FILTERED_POSITION_BEFORE', payload: data.positionList});
             });
 

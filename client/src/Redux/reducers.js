@@ -5,9 +5,11 @@ const initialState = {
     },
     positions:[],
     positionsBefore:[],
-    symbol:'BTCUSDT',
+    socketPrice:[],
+    symbol:null,
     type_binance:null,
     balance:{'USDT':0},
+    currentSocketPrice: {current:null,other:[null]},
     positionPrice:{},
     commission:{commissionTaker:null,commissionMaker:null},
     currentOption: {
@@ -16,7 +18,7 @@ const initialState = {
         adjustLeverage:"2",
         maxAdjustLeverage:"100",
         currencyPrice: 0,
-        currency:'BTCUSDT',
+        currency:null,
         takeProfit:{
             status:true,
             price:0,
@@ -45,6 +47,15 @@ const initialState = {
 const authenticationReducer = (state = initialState, action) => {
     switch (action.type) {
         case 'SET_AUTHENTICATION_STATUS':
+            return {
+                ...state,
+                user: {
+                    ...state.user,
+                    isAuthenticated: action.payload,
+                }
+            };
+            break
+        case 'SET_POSITION_PRICE':
             return {
                 ...state,
                 user: {
@@ -161,8 +172,11 @@ const authenticationReducer = (state = initialState, action) => {
         case 'SET_USER_DATA':
             return {
                 ...state,
-                currentOption: {...action.payload}
-
+                ...action.payload,
+                currentOption:{
+                    ...state.currentOption,
+                    ...action.payload.currentOption
+                 }
             };
             break
         default:

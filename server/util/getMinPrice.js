@@ -4,10 +4,10 @@ const {getLeverage} = require("./getLeverage");
 const {getLeverageBracket} = require("./getLeverageBracket");
 const {TEST_BINANCE_API_DOMAIN,BINANCE_API_DOMAIN} = process.env
 
-async function getMinimumBuyQuantity(symbol, socket, key_1, key_2) {
+async function getMinimumBuyQuantity(symbol, id, key_1, key_2) {
     try {
 
-        const user = await User.findOne({token: socket.id})
+        const user = await User.findOne({token: id})
         const exchangeInfoResponse = await axios.get(`https://${user?.binance_test ? TEST_BINANCE_API_DOMAIN : BINANCE_API_DOMAIN}/fapi/v1/exchangeInfo`);
         const symbolInfo = exchangeInfoResponse.data.symbols.find(s => s.symbol === symbol);
 
@@ -33,7 +33,6 @@ async function getMinimumBuyQuantity(symbol, socket, key_1, key_2) {
         return {minimumQuantity,response,maxAdjustLeverage}
     } catch (error) {
         console.error(error?.data)
-        // return undefined
     }
 }
 

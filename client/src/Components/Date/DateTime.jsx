@@ -90,6 +90,7 @@ const DateTime = () => {
 
     const [currentTime, setCurrentTime] = useState(dayjs());
     const balance = useSelector(state => state.balance)
+    const [changeBalance, setTypeBalance] = useState('USDT');
 
     useEffect(() => {
         const interval = setInterval(() => {
@@ -116,7 +117,7 @@ const DateTime = () => {
             </div>
             <div className="time">
                 {wallet}
-                {balance.length > 1 ?
+                {/*{balance.length > 1 ?*/}
                     <ConfigProvider
                         theme={{
                             token: {
@@ -140,7 +141,7 @@ const DateTime = () => {
                         }}
                     >
                         <Select
-                            defaultValue="USDT"
+                            value={changeBalance}
                             style={{
                                 width: 120,
                             }}
@@ -151,14 +152,22 @@ const DateTime = () => {
                                 textAlign: 'center',
                                 width: '160px',
                             }}
-                            // onChange={handleChange}
-                            options={balance}
-                        />
+                            onChange={(value)=> {
+                                setTypeBalance(value)
+                            }}
+                            // options={isBalance}
+                        >
+                            {balance ? balance.map(option => (
+                                <Option key={option.value} value={option.value}>
+                                     {option.label}
+                                </Option>
+                            )) : <></> }
+                        </Select>
                     </ConfigProvider>
-                    :
-                    <div style={{width:'100%',fontSize:'16px'}}>{balance[0]?.label}</div>
+                    {/*:*/}
+                    {/*<div style={{width:'100%',fontSize:'16px'}}>{balance[0]?.label}</div>*/}
 
-                }
+                {/*}*/}
 
             </div>
         </div>

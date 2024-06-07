@@ -4,6 +4,7 @@ const WebSocket = require('ws');
 const Order = require('../models/orders.model')
 const {createOrder} = require("../util/createOrder");
 const {TEST_BINANCE_API_DOMAIN,BINANCE_API_DOMAIN,TEST_BINANCE_SOCKET_DOMAIN,BINANCE_SOCKET_DOMAIN} = process.env
+const socketServer = require("../server");
 
 let close = [],
     orders = {},
@@ -11,8 +12,7 @@ let close = [],
     macdInput = [],
     macdCloseInput = [],
     sockets = {},
-    current_interval = [],
-    socketIo = ''
+    current_interval = []
 
 async function addSocket(id, symbol, interval, number, type, type_g, test, user) {
     try{
@@ -252,16 +252,4 @@ async function createSocket({id, symbol, interval, number, type, type_g, test, u
     }
 }
 
-async function setMacdSocket(io) {
-    if(!socketIo)
-        socketIo = io
-}
-
-async function deletedMacdSocket() {
-    if(socketIo)
-        socketIo = ''
-}
-
-exports.setMacdSocket = setMacdSocket
-exports.deletedMacdSocket = deletedMacdSocket
 exports.createSocket = createSocket

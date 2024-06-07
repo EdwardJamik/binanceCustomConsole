@@ -90,7 +90,7 @@ const PositionBefore = () => {
             key: 'origQty',
             align:'center',
             width:'200px',
-            render: (_,record) => <>{(parseFloat(record?.openedConfig?.quantity)*parseFloat(record?.startPrice)).toFixed(2)} ({`${(parseFloat(record?.openedConfig?.quantity)).toPrecision(2)}`})</>,
+            render: (_,record) => <>{(parseFloat(record?.positionData?.cumQuote)/parseInt(record?.leverage)).toFixed(2)}/{parseFloat(record?.positionData?.cumQuote).toFixed(2)} ({`${parseFloat(record?.positionData?.origQty)}`})</>,
         },
         {
             title: 'Прибыль',
@@ -103,26 +103,46 @@ const PositionBefore = () => {
 
                 let result = 0
                 if(record?.ClosePositionData?.rp){
-                    const precent = parseFloat(record?.ClosePositionData?.rp)-parseFloat(record?.ClosePositionData?.cr)
-                    return precent.toFixed(2)
-                 } else{
-                    const currentSize = (parseFloat(record?.positionData?.cumQuote) - parseFloat(record?.ClosePositionData?.cumQuote))
-                    const precent = (parseFloat(currentSize) * parseFloat(record?.ClosePositionData?.avgPrice) * parseFloat(commission.commissionTaker))
-                    return currentSize
+
+                    let percent = 0
+                    const commission = parseFloat(record?.commission) + ((parseFloat(record?.ClosePositionData?.q) * parseFloat(record?.ClosePositionData?.ap)) * parseFloat(record?.openedConfig?.commission))
+                    const profit = ((((parseFloat(record?.ClosePositionData?.q) * parseFloat(record?.ClosePositionData?.ap))) - parseFloat(record?.positionData?.cumQuote)) - commission).toFixed(6)
+
+                    if (record?.ClosePositionData?.ps === 'SHORT')
+                        percent = ((((parseFloat(record?.startPrice) - parseFloat(record?.ClosePositionData?.ap)) / parseFloat(record?.startPrice))) * 100 * parseFloat(record?.leverage) - (commission)).toFixed(2);
+                    else
+                        percent = ((((parseFloat(record?.ClosePositionData?.ap) - parseFloat(record?.startPrice)) / parseFloat(record?.startPrice))) * 100 * parseFloat(record?.leverage) - (commission)).toFixed(2);
+
+                    return <div style={{display: 'flex', flexDirection: 'column'}}>
+                        <div><span style={{
+                            color: result > 0 ? 'rgb(14, 203, 129,0.8)' : 'rgba(246, 70, 93, 0.8)',
+                            fontSize: '16px'
+                        }}>{profit} ({percent}%)</span></div>
+                        <span style={{fontSize: '12px'}}>Комиссия открытия: {parseFloat(record?.commission).toFixed(6)}</span>
+                        <span style={{fontSize: '12px'}}>Комиссия закрытия: {((parseFloat(record?.ClosePositionData?.q) * parseFloat(record?.ClosePositionData?.ap)) * parseFloat(record?.openedConfig?.commission)).toFixed(6)}</span>
+                    </div>
+                 } else if(record?.ClosePositionData){
+
+                    const currentSize = (parseFloat(record?.ClosePositionData?.cumQuote) - parseFloat(record?.positionData?.cumQuote)) - parseFloat(record?.commission)
+                    const precent = parseFloat(record?.ClosePositionData?.cumQuote)*parseFloat(record?.openedConfig?.commission)
+                    const result = (currentSize - precent).toFixed(6)
+
+                    return <div style={{display: 'flex', flexDirection: 'column'}}>
+                        <div><span style={{
+                            color: result > 0 ? 'rgb(14, 203, 129,0.8)' : 'rgba(246, 70, 93, 0.8)',
+                            fontSize: '16px'
+                        }}>{result}</span></div>
+                        <span style={{fontSize: '12px'}}>Грязная прибыль: {parseFloat(currentSize).toFixed(6)}</span>
+                        <span style={{fontSize: '12px'}}>Комиссия открытия: {parseFloat(record?.commission).toFixed(6)}</span>
+                        <span style={{fontSize: '12px'}}>Комиссия закрытия: {parseFloat(precent).toFixed(6)}</span>
+                    </div>
+                } else {
+                    return <div style={{display: 'flex', flexDirection: 'column'}}>
+                      Информация не получения
+                    </div>
                 }
-
-                // {record?.ClosePositionData?.rp ? parseFloat(record?.ClosePositionData?.rp)-parseFloat(record?.ClosePositionData?.AP) : 0}
-                // if ((user.minCurrencyPrice * price).toFixed(2) > parseFloat(user?.amount))
-                    // dispatch({type: 'SET_SIZE', payload: parseFloat((user.minCurrencyPrice * price))});
-
-                // const precent = (trimToFirstInteger(parseFloat(currentSize) * parseFloat(user?.adjustLeverage)) * parseFloat(price) * parseFloat(commission.commissionTaker))
-
-                // setPrecent((prevState) => Math.max(precent))
-
             }
         },
-    // const message = `#${s} продажа по рынку\n\nКол-во: ${q}\nЦена покупки: ${updatedPosition?.startPrice}\n\nЦена продажи: ${ap}\nСумма: ${(parseFloat(q) * parseFloat(ap)).toFixed(4)}\nПрибыль: ${rp}\n\nid: ${updatedPosition?._id}`
-
     {
             title: '',
             dataIndex: 'currency',

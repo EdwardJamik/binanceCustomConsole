@@ -5,27 +5,27 @@ const User = require("../models/user.model");
 const Order = require("../models/orders.model");
 const {getUserApi} = require("./getUserApi");
 const {TEST_BINANCE_API_DOMAIN,BINANCE_API_DOMAIN} = process.env
+const socketServer = require("../server");
+const {getAvailableBalance} = require("./getBalance");
 
-let socketIo = ''
-async function cancelOrder(symbol, orderId, dbId, socket) {
+async function cancelOrder(symbol, orderId, dbId, id) {
     try {
         let user = [], currentOrder
 
-        if (socket?.id) {
-            user = await User.findOne({token: socket?.id})
-        } else if (socket) {
-            currentOrder = await Order.findOne({positionsId: socket})
+        if (id) {
+            user = await User.findOne({token: id})
+        } else if (id) {
+            currentOrder = await Order.findOne({positionsId: id})
             user = await User.findOne({_id: currentOrder?.userId})
         }
 
         if (user) {
             const userApis = getUserApi(user)
-            let key_1 = userApis?.key_1, key_2 = userApis?.key_2
 
             const timestamp = Date.now()
-            const signature = getSignature(`symbol=${symbol}&orderid=${orderId}&timestamp=${timestamp}`, key_2)
+            const signature = getSignature(`symbol=${symbol}&orderid=${orderId}&timestamp=${timestamp}`, userApis?.key_2)
 
-            const headers = getHeaders(key_1)
+            const headers = getHeaders(userApis?.key_1)
 
             const response = await axios.delete(`https://${user?.binance_test ? TEST_BINANCE_API_DOMAIN : BINANCE_API_DOMAIN}/fapi/v1/order?symbol=${symbol}&orderid=${orderId}&timestamp=${timestamp}&signature=${signature}`, {
                 headers: headers,
@@ -48,13 +48,15 @@ async function cancelOrder(symbol, orderId, dbId, socket) {
                         const { _id, ...rest } = order.toObject(); // перетворення об'єкта Mongoose на звичайний об'єкт JavaScript
                         return { key: _id, ...rest };
                     });
-                    socketIo.to(user?.token).emit('updatePositionCreated', {
+
+                    socketServer.socketServer.io.to(id).emit('updatePositionCreated', {
                         positionList: modifiedOrders,
                     });
-                    socketIo.to(user?.token).emit('updatePositionBefore', {
+
+                    socketServer.socketServer.io.to(id).emit('updatePositionBefore', {
                         positionList: modifiedBeforeOrders,
                     });
-                    socketIo.to(user?.token).emit('userMessage', {
+                    socketServer.socketServer.io.to(id).emit('userMessage', {
                         type: 'success',
                         message: `${response?.data?.type} успешно отменен`
                     });
@@ -69,16 +71,4 @@ async function cancelOrder(symbol, orderId, dbId, socket) {
     }
 }
 
-async function setCancelOrderSocket(io) {
-    if(!socketIo)
-        socketIo = io
-}
-
-async function deletedCancelOrderSocket() {
-    if(socketIo)
-        socketIo = ''
-}
-
-exports.setCancelOrderSocket = setCancelOrderSocket
-exports.deletedCancelOrderSocket = deletedCancelOrderSocket
 exports.cancelOrder = cancelOrder

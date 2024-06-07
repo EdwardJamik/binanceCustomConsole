@@ -2,7 +2,7 @@ const axios = require("axios");
 const {getHeaders, getSignature} = require("./signature");
 const {TEST_BINANCE_API_DOMAIN,BINANCE_API_DOMAIN} = process.env
 
-async function getAvailableBalance(key_1, key_2, user, io) {
+async function getAvailableBalance(key_1, key_2, user) {
 
     const timestamp = Date.now();
     const queryString = `timestamp=${timestamp}`;
@@ -20,10 +20,7 @@ async function getAvailableBalance(key_1, key_2, user, io) {
                 balance.push({ value: `${asset.asset}`, label: `${parseFloat(asset?.availableBalance).toFixed(2)} ${(asset.asset).toLowerCase()}` });
         }
 
-        if(io)
-            io.to(user?.token).emit('userBalance', balance);
-        else
-            return balance
+        return balance
 
 
     } catch (error) {

@@ -2,9 +2,9 @@ const {getSignature, getHeaders} = require("./signature");
 const axios = require("axios");
 const {TEST_BINANCE_API_DOMAIN,BINANCE_API_DOMAIN} = process.env
 
-async function getCommisionRate(key_1, key_2, data, user, io) {
+async function getCommisionRate(key_1, key_2, data, user) {
     try {
-        console.log(key_1,key_2)
+        // console.log(key_1,key_2)
         if (data) {
             const timestamp = Date.now()
             const signature = getSignature(`symbol=${data?.symbol}&timestamp=${timestamp}`, key_2)
@@ -18,10 +18,9 @@ async function getCommisionRate(key_1, key_2, data, user, io) {
             const commissionTaker = parseFloat(response?.data?.takerCommissionRate)
             const commissionMaker = parseFloat(response?.data?.makerCommissionRate)
 
-            if(io) {
-                io.to(user?.token).emit('updateCommission', {commissionTaker, commissionMaker});
-
-            }
+            // if(io) {
+            //     io.to(user?.token).emit('updateCommission', {commissionTaker, commissionMaker});
+            // }
 
             return {commissionTaker,commissionMaker}
         }

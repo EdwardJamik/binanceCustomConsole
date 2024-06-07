@@ -1,10 +1,10 @@
 const WebSocket = require('ws');
 const axios = require("axios");
 const {TEST_BINANCE_API_DOMAIN,BINANCE_API_DOMAIN,TEST_BINANCE_SOCKET_DOMAIN,BINANCE_SOCKET_DOMAIN} = process.env
+const socketServer = require("../server");
 
 let currency = {}
 let user = {}
-let socketIo = ''
 
 function streamPrice(symbol,id,type_binance) {
     try{
@@ -20,7 +20,7 @@ function streamPrice(symbol,id,type_binance) {
                     axios.get(`https://${type_binance ? TEST_BINANCE_API_DOMAIN : BINANCE_API_DOMAIN}/fapi/v2/ticker/price?symbol=${curr.toLowerCase()}`).then((response) => {
                         const p = response.data.price;
 
-                        socketIo.emit('positionPrices', [`${curr}`,parseFloat(p)]);
+                        socketServer.socketServer.io.emit('positionPrices', [`${curr}`,parseFloat(p)])
                     });
 
                         currency[curr] = ws
@@ -33,8 +33,8 @@ function streamPrice(symbol,id,type_binance) {
 
                 ws.onmessage = event => {
                     const {p,s} = JSON.parse(event.data)
-                    if(user[s] && socketIo)
-                        socketIo.emit('positionPrices', [`${s}`,parseFloat(p)]);
+                    if(user[s])
+                        socketServer.socketServer.io.emit('positionPrices', [`${s}`,parseFloat(p)])
 
                 };
 
@@ -59,16 +59,6 @@ function streamPrice(symbol,id,type_binance) {
     }
 }
 
-async function setStremPriceSocket(io) {
-    if(!socketIo)
-        socketIo = io
-}
-
-async function deletedStreamPriceSocket() {
-    if(socketIo)
-        socketIo = ''
-}
-
 async function removeStreamPrice(id) {
     function removeValueFromArray(array, value) {
         const index = array.indexOf(value);
@@ -91,4 +81,4 @@ async function removeStreamPrice(id) {
 }
 
 
-module.exports = {streamPrice,removeStreamPrice,deletedStreamPriceSocket,setStremPriceSocket}
+module.exports = {streamPrice,removeStreamPrice}

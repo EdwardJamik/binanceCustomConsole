@@ -6,7 +6,8 @@ const Order = require("../models/orders.model");
 const User = require("../models/user.model");
 const {getUserApi} = require("../util/getUserApi");
 const {bot} = require('../bot/index')
-let socketIo,mainWs = ''
+let mainWs = ''
+const socketServer = require("../server");
 
 async function createEventsSocket(binance_test,key_1,key_2) {
     let listenKey = await createListenKey(binance_test,key_1,key_2);
@@ -84,7 +85,7 @@ async function createEventsSocket(binance_test,key_1,key_2) {
                         MARGIN_CALL
                         listenKeyExpired - Will be done
                 */
-                // socketIo.to(id).emit('userMessage', {
+                // socketServer.socketServer.io.to(id).emit('userMessage', {
                 //     type: 'success',
                 //     message: `Позиция закрыта`
                 // });
@@ -94,59 +95,69 @@ async function createEventsSocket(binance_test,key_1,key_2) {
 
                 if (e === 'ORDER_TRADE_UPDATE' && X === 'FILLED') {
 
+                    const updatedPosition = await Order.findOneAndUpdate({"ordersId.TAKE_PROFIT_MARKET.orderId": i}, {
+                            opened: false,
+                            ClosePositionData: parsedData?.o,
+                            "ordersId.TAKE_PROFIT_MARKET.closed": true
+                        },
+                        {returnDocument: 'after'})
 
-                    if(ot === 'TAKE_PROFIT_MARKET' && R) {
+                    if(ot === 'TAKE_PROFIT_MARKET' && R && updatedPosition && updatedPosition?.opened === false) {
 
-                        const updatedPosition = await Order.findOneAndUpdate({"ordersId.TAKE_PROFIT_MARKET.orderId": i}, {
-                                opened: false,
-                                ClosePositionData: parsedData?.o,
-                                "ordersId.TAKE_PROFIT_MARKET.closed": true
-                            },
-                            {returnDocument: 'after'})
+                            console.log(`[${new Date().toLocaleTimeString('uk-UA')}] EVENTS TAKE_PROFIT_MARKET`, parsedData)
+                            const findUser = await User.findOne({_id: updatedPosition?.userId})
 
+                            cancelPositionOrder(s, updatedPosition, findUser)
 
-                        console.log(`[${new Date().toLocaleTimeString('uk-UA')}] EVENTS TAKE_PROFIT_MARKET`, parsedData)
-                        const findUser = await User.findOne({_id: updatedPosition?.userId})
+                            socketServer.socketServer.io.to(findUser?.token).emit('userMessage', {
+                                type: 'success',
+                                message: `Позиция ${s} закрыта инструментом ${ot}`
+                            });
 
-                        cancelPositionOrder(s, updatedPosition, findUser)
+                            const orders = await Order.find({
+                                userId: updatedPosition?.userId,
+                                opened: true
+                            }).sort({createdAt: -1})
 
-                        socketIo.to(findUser?.token).emit('userMessage', {
-                            type: 'success',
-                            message: `Позиция ${s} закрыта инструментом ${ot}`
-                        });
+                            const ordersBefore = await Order.find({
+                                userId: updatedPosition?.userId,
+                                opened: false
+                            }).sort({updatedAt: -1})
 
-                        const orders = await Order.find({
-                            userId: updatedPosition?.userId,
-                            opened: true
-                        }).sort({createdAt: -1})
+                            const modifiedOrders = orders.map(order => {
+                                const {_id, ...rest} = order.toObject();
+                                return {key: _id, ...rest};
+                            });
 
-                        const ordersBefore = await Order.find({
-                            userId: updatedPosition?.userId,
-                            opened: false
-                        }).sort({updatedAt: -1})
+                            const modifiedBeforeOrders = ordersBefore.map(order => {
+                                const {_id, ...rest} = order.toObject();
+                                return {key: _id, ...rest};
+                            });
 
-                        const modifiedOrders = orders.map(order => {
-                            const {_id, ...rest} = order.toObject();
-                            return {key: _id, ...rest};
-                        });
+                            socketServer.socketServer.io.to(findUser?.token).emit('updatePositionCreated', {
+                                positionList: modifiedOrders,
+                            });
 
-                        const modifiedBeforeOrders = ordersBefore.map(order => {
-                            const {_id, ...rest} = order.toObject();
-                            return {key: _id, ...rest};
-                        });
+                            socketServer.socketServer.io.to(findUser?.token).emit('updatePositionBefore', {
+                                positionList: modifiedBeforeOrders,
+                            });
 
-                        socketIo.to(findUser?.token).emit('updatePositionCreated', {
-                            positionList: modifiedOrders,
-                        });
+                            let percent = 0
+                            const commission = parseFloat(updatedPosition?.commission) + ((parseFloat(q) * parseFloat(ap)) * parseFloat(updatedPosition?.openedConfig?.commission))
+                            const profit = ((((parseFloat(q) * parseFloat(ap))) - parseFloat(updatedPosition?.positionData?.cumQuote)) - commission).toFixed(6)
 
-                        socketIo.to(findUser?.token).emit('updatePositionBefore', {
-                            positionList: modifiedBeforeOrders,
-                        });
+                            if (ps === 'SHORT')
+                                percent = ((((parseFloat(updatedPosition?.startPrice) - parseFloat(ap)) / parseFloat(updatedPosition?.startPrice))) * 100 * parseFloat(updatedPosition?.leverage) - (commission)).toFixed(2);
+                            else
+                                percent = ((((parseFloat(ap) - parseFloat(updatedPosition?.startPrice)) / parseFloat(updatedPosition?.startPrice))) * 100 * parseFloat(updatedPosition?.leverage) - (commission)).toFixed(2);
 
-                        const message = `#${s} продажа по рынку\n\nКол-во: ${q}\nЦена покупки: ${updatedPosition?.startPrice}\n\nЦена продажи: ${ap}\nСумма: ${(parseFloat(q) * parseFloat(ap)).toFixed(4)}\nПрибыль: ${rp}\n\nid: ${updatedPosition?._id}`
-                        bot.telegram.sendMessage(findUser?.chat_id, message).catch((e)=>{`[${new Date().toLocaleTimeString('uk-UA')}] ERROR SEND TELEGRAM`})
+                            const message = `${percent > 0 ? '🟢' : '🔴'} #${updatedPosition?.currency} продажа по рынку\n\n<b>Кол-во:</b> ${parseFloat(q)}\n<b>Цена покупки:</b> ${parseFloat(updatedPosition?.startPrice).toFixed(2)}\n\n<b>Цена продажи:</b> ${parseFloat(ap).toFixed(2)}\n<b>Сумма:</b> ${(parseFloat(q) * parseFloat(ap)).toFixed(2)}\n<b>Прибыль:</b> ${profit} (${percent > 0 ? '+' : ''}${percent}%)\n\n<b>id:</b> <code>${updatedPosition?._id}</code>`
+                            bot.telegram.sendMessage(findUser?.chat_id, message, {parse_mode: 'HTML'}).catch((e) => {
+                                `[${new Date().toLocaleTimeString('uk-UA')}] ERROR SEND TELEGRAM`
+                            })
+
                     }
-                } else if(ot === 'TRAILING_STOP_MARKET' && R){
+                } else if(ot === 'TRAILING_STOP_MARKET' && R && updatedPosition && updatedPosition?.opened === false){
                     const updatedPosition = await Order.findOneAndUpdate({"ordersId.TRAILING_STOP_MARKET.orderId":i},{opened: false,ClosePositionData:parsedData?.o,"ordersId.TRAILING_STOP_MARKET.closed":true},
                         { returnDocument: 'after' })
 
@@ -156,7 +167,7 @@ async function createEventsSocket(binance_test,key_1,key_2) {
 
                     cancelPositionOrder(s, updatedPosition, findUser)
 
-                    socketIo.to(findUser?.token).emit('userMessage', {
+                    socketServer.socketServer.io.to(findUser?.token).emit('userMessage', {
                         type: 'success',
                         message: `Позиция ${s} закрыта инструментом ${ot}`
                     });
@@ -181,16 +192,39 @@ async function createEventsSocket(binance_test,key_1,key_2) {
                         return {key: _id, ...rest};
                     });
 
-                    socketIo.to(findUser?.token).emit('updatePositionCreated', {
+                    socketServer.socketServer.io.to(findUser?.token).emit('updatePositionCreated', {
                         positionList: modifiedOrders,
                     });
 
-                    socketIo.to(findUser?.token).emit('updatePositionBefore', {
+                    socketServer.socketServer.io.to(findUser?.token).emit('updatePositionBefore', {
                         positionList: modifiedBeforeOrders,
                     });
 
-                    const message = `#${s} продажа по рынку\n\nКол-во: ${q}\nЦена покупки: ${updatedPosition?.startPrice}\n\nЦена продажи: ${ap}\nСумма: ${(parseFloat(q) * parseFloat(ap)).toFixed(4)}\nПрибыль: ${rp}\n\nid: ${updatedPosition?._id}`
-                    bot.telegram.sendMessage(findUser?.chat_id, message).catch((e)=>{`[${new Date().toLocaleTimeString('uk-UA')}] ERROR SEND TELEGRAM`})
+                    let percent = 0
+                    const commission = parseFloat(updatedPosition?.commission)+(parseFloat(response?.data?.cumQuote)*parseFloat(updatedPosition?.openedConfig?.commission))
+                    const profit = ((((parseFloat(q) * parseFloat(ap))) - parseFloat(updatedPosition?.positionData?.cumQuote)) - commission).toFixed(6)
+
+                    if(ps === 'SHORT')
+                        percent = ((((parseFloat(updatedPosition?.startPrice)-parseFloat(ap)) / parseFloat(updatedPosition?.startPrice)))*100*parseFloat(updatedPosition?.leverage)-(commission)).toFixed(2);
+                    else
+                        percent = ((((parseFloat(ap)-parseFloat(updatedPosition?.startPrice)) / parseFloat(updatedPosition?.startPrice)))*100*parseFloat(updatedPosition?.leverage)-(commission)).toFixed(2);
+
+                    const message = `${percent > 0 ? '🟢' : '🔴'} #${updatedPosition?.currency} продажа по рынку\n\n<b>Кол-во:</b> ${parseFloat(q)}\n<b>Цена покупки:</b> ${parseFloat(updatedPosition?.startPrice).toFixed(2)}\n\n<b>Цена продажи:</b> ${parseFloat(ap).toFixed(2)}\n<b>Сумма:</b> ${(parseFloat(q) * parseFloat(ap)).toFixed(2)}\n<b>Прибыль:</b> ${profit} (${percent > 0 ? '+' : ''}${percent}%)\n\n<b>id:</b> <code>${updatedPosition?._id}</code>`
+                    bot.telegram.sendMessage(findUser?.chat_id, message, {parse_mode:'HTML'}).catch((e)=>{`[${new Date().toLocaleTimeString('uk-UA')}] ERROR SEND TELEGRAM`})
+                } else{
+                    // const parsedDatas = JSON.parse(data);
+                    // console.log(parsedDatas?.o)
+                    // let percent = 0
+                    // const commission = parseFloat(updatedPosition?.commission)+(parseFloat(response?.data?.cumQuote)*parseFloat(updatedPosition?.openedConfig?.commission))
+                    // const profit = ((((parseFloat(q) * parseFloat(ap))) - parseFloat(updatedPosition?.positionData?.cumQuote)) - commission).toFixed(6)
+                    //
+                    // if(ps === 'SHORT')
+                    //     percent = ((((parseFloat(updatedPosition?.startPrice)-parseFloat(ap)) / parseFloat(updatedPosition?.startPrice)))*100*parseFloat(updatedPosition?.leverage)-(commission)).toFixed(2);
+                    // else
+                    //     percent = ((((parseFloat(ap)-parseFloat(updatedPosition?.startPrice)) / parseFloat(updatedOrder?.startPrice)))*100*parseFloat(updatedPosition?.leverage)-(commission)).toFixed(2);
+                    //
+                    // const message = `${percent > 0 ? '🟢' : '🔴'} #${updatedPosition?.currency} продажа по рынку\n\n<b>Кол-во:</b> ${parseFloat(q)}\n<b>Цена покупки:</b> ${parseFloat(updatedPosition?.startPrice).toFixed(2)}\n\n<b>Цена продажи:</b> ${parseFloat(ap).toFixed(2)}\n<b>Сумма:</b> ${(parseFloat(q) * parseFloat(ap)).toFixed(2)}\n<b>Прибыль:</b> ${profit} (${percent > 0 ? '+' : ''}${percent}%)\n\n<b>id:</b> <code>${updatedPosition?._id}</code>`
+                    // bot.telegram.sendMessage(user?.chat_id, message, {parse_mode:'HTML'})
                 }
 
 
@@ -249,16 +283,5 @@ async function cancelPositionOrder(symbol, data, user) {
         return null
     }
 }
-async function setSocket(io) {
-   if(!socketIo)
-       socketIo = io
-}
-
-async function deletedSocket() {
-    if(socketIo)
-        socketIo = ''
-}
 
 exports.createEventsSocket = createEventsSocket
-exports.setSocket = setSocket
-exports.deletedSocket = deletedSocket

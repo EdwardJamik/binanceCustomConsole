@@ -34,43 +34,63 @@ const Currency = () => {
         }
     };
 
-    function trimToFirstInteger(num) {
-        let strNum = num.toString();
-        let dotIndex = strNum.indexOf('.');
-        if (dotIndex === -1 || dotIndex === strNum.length - 1) {
-            return num;
-        } else {
-            let nextDigitIndex = dotIndex + 1;
-            while (nextDigitIndex < strNum.length && strNum[nextDigitIndex] === '0') {
-                nextDigitIndex++;
+    function trimToFirstInteger(number) {
+        let integerPart = Math.trunc(number);
+
+        let fractionalPart = number - integerPart;
+
+        if (fractionalPart !== 0 && integerPart === 0) {
+            let factor = 1;
+            while (fractionalPart * factor < 1) {
+                factor *= 10;
             }
-            return parseFloat(strNum.slice(0, nextDigitIndex + 1));
+            fractionalPart = Math.ceil(fractionalPart * factor) / factor;
         }
+
+        if(integerPart === 0)
+            return `${integerPart + fractionalPart}`;
+        else
+            return `${integerPart}`;
+    }
+
+    function roundToFirstSignificantDecimal(number) {
+        let integerPart = Math.trunc(number);
+
+        let fractionalPart = number - integerPart;
+
+        if (fractionalPart !== 0 && integerPart === 0) {
+            let factor = 1;
+            while (fractionalPart * factor < 1) {
+                factor *= 10;
+            }
+            fractionalPart = Math.ceil(fractionalPart * factor) / factor;
+        }
+
+        if(integerPart === 0)
+            return `${integerPart + fractionalPart}`;
+        else
+            return `${integerPart}`;
+
     }
 
     useEffect(() => {
-        const currentSize =  (parseFloat(user?.amount)/parseFloat(price))
+        const currentSize =  parseFloat(user?.amount)/parseFloat(price)
+        const minPrice = parseFloat(user.minCurrencyPrice) * parseFloat(price)
 
-        if((user.minCurrencyPrice * price).toFixed(2) > parseFloat(user?.amount))
-            dispatch({type: 'SET_SIZE', payload: parseFloat((user.minCurrencyPrice * price))});
+        if(minPrice > parseFloat(user?.amount))
+            dispatch({type: 'SET_SIZE', payload: minPrice});
 
-        const precent = (trimToFirstInteger(parseFloat(currentSize)*parseFloat(user?.adjustLeverage))*parseFloat(price)*parseFloat(commission.commissionTaker))
-
-        setPrecent((prevState)=> Math.max(precent))
-
-
-    }, [price,user?.amount]);
-
-    const onChangeSize = (value, before) => {
-        const currentSize =  (parseFloat(value)/parseFloat(price))
-        const precent = (trimToFirstInteger(parseFloat(currentSize)*parseFloat(user?.adjustLeverage))*parseFloat(price)*parseFloat(commission.commissionTaker))
+        const precent = trimToFirstInteger(parseFloat(currentSize)*parseFloat(user?.adjustLeverage))*parseFloat(price)*parseFloat(commission.commissionTaker)
         setPrecent(precent)
 
-        if (!before) {
-            dispatch({type: 'SET_SIZE', payload: parseFloat(value)});
-        } else {
-            socket.emit('setSize', {value, symbol, user});
-        }
+    }, [price,user?.amount,user?.adjustLeverage]);
+
+    const onChangeSize = (value) => {
+        const currentSize =  (parseFloat(value)/parseFloat(price)).toFixed(2)
+        const precent = (trimToFirstInteger(parseFloat(currentSize)*parseFloat(user?.adjustLeverage))*parseFloat(price)*parseFloat(commission.commissionTaker))
+        setPrecent(precent)
+        dispatch({type: 'SET_SIZE', payload: parseFloat(value)});
+        socket.emit('setSize', {value, symbol, user});
     };
 
     useEffect(() => {
@@ -311,10 +331,9 @@ const Currency = () => {
                                 <InputNumber
                                     className='inputLeverage size'
                                     min={(user.minCurrencyPrice * price).toFixed(2)}
-                                    value={user.amount}
+                                    value={parseFloat(user.amount).toFixed(2)}
                                     step={0.1}
-                                    onChange={(value) => onChangeSize(value, false)}
-                                    onBlur={() => onChangeSize(user?.amount, true)}
+                                    onChange={(value) => onChangeSize(value)}
                                     changeOnWheel
                                     style={{width: `100%`}}
                                 />

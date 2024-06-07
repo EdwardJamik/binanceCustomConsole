@@ -20,7 +20,8 @@ const CreateLong = () => {
             positionSide: 'LONG',
             quantity: `${parseFloat(user.amount)}`,
             currentPrice: parseFloat(price?.price),
-            leverage: user?.adjustLeverage
+            leverage: user?.adjustLeverage,
+            commission: commission,
         }
 
         const take_profit = {

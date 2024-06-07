@@ -90,7 +90,7 @@ const Home = () => {
                         {
                             label: `Выполнены`,
                             key: 2,
-                            children: <></>,
+                            children: <PositionBefore/>,
                         }
                         ]
 

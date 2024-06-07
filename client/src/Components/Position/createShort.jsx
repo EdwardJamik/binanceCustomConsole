@@ -20,7 +20,8 @@ const CreateShort = () => {
             positionSide: 'SHORT',
             quantity: `${user.amount}`,
             currentPrice: parseFloat(price?.price),
-            leverage: user?.adjustLeverage
+            leverage: user?.adjustLeverage,
+            commission: commission
         }
 
         const take_profit = {

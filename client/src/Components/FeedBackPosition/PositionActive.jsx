@@ -100,11 +100,10 @@ const PositionActive = () => {
                     <div style={{display:'flex', alignItems:'center', justifyContent:'center'}}>
                         {record.positionData.positionSide === 'LONG' &&
                             (() => {
-                                const precent = (parseFloat(record?.openedConfig?.quantity)*(parseFloat(user?.adjustLeverage)*2))*parseFloat(positionsPrices[record?.positionData?.symbol])*parseFloat(commission.commissionTaker)
-                                const profit = ((((parseFloat(positionsPrices[record?.positionData?.symbol]) - parseFloat(record?.startPrice)) * ((parseFloat(record?.openedConfig?.quantity))*(parseFloat(user?.adjustLeverage)*2))))-parseFloat(precent)).toFixed(2)
+                                const precent = parseFloat(record?.positionData?.origQty)*parseFloat(positionsPrices[record?.positionData?.symbol])*parseFloat(record?.openedConfig?.commission)
+                                const profit = ((((parseFloat(positionsPrices[record?.positionData?.symbol]) - parseFloat(record?.startPrice)) * parseFloat(record?.positionData?.origQty)))-(precent+parseFloat(record?.commission))).toFixed(2)
+                                const procent = ((((parseFloat(positionsPrices[record?.positionData?.symbol]) - parseFloat(record?.startPrice)) / parseFloat(record?.startPrice)))*100*parseFloat(record?.leverage)-(precent+parseFloat(record?.commission))).toFixed(2);
                                 const fixProfit = record?.ordersId?.TAKE_PROFIT_MARKET ? ((((parseFloat(record?.ordersId?.TAKE_PROFIT_MARKET?.stopPrice) - parseFloat(record?.startPrice)) * ((parseFloat(record?.openedConfig?.quantity)))))).toFixed(2) : ( parseFloat(record?.startPrice) * parseFloat(record?.ordersId?.TRAILING_STOP_MARKET?.priceRate)/100).toFixed(2)
-                                const procent = ((((parseFloat(positionsPrices[record?.positionData?.symbol]) - parseFloat(record?.startPrice)) / parseFloat(record?.startPrice)))*100*parseFloat(record?.leverage)-(precent)).toFixed(2);
-
 
                                 return !isNaN(profit) || !isNaN(procent) ?
                                     <div style={{
@@ -139,7 +138,7 @@ const PositionActive = () => {
                                                             borderRadius: '10px',
                                                         }}
                                                         >
-                                                            {(positionsPrices[record?.positionData?.symbol]).toFixed(1)}
+                                                            {parseFloat(positionsPrices[record?.positionData?.symbol])}
                                                         </div>
                                                     </Badge.Ribbon>
                                                     </div>
@@ -233,10 +232,11 @@ const PositionActive = () => {
                         }
                         {record.positionData.positionSide === 'SHORT' &&
                             (() => {
-                                const precent = (parseFloat(record?.openedConfig?.quantity)*(parseFloat(user?.adjustLeverage)*2))*parseFloat(positionsPrices[record?.positionData?.symbol])*parseFloat(commission.commissionTaker)
-                                const profit = ((((parseFloat(record?.startPrice)-parseFloat(positionsPrices[record?.positionData?.symbol])) * ((parseFloat(record?.openedConfig?.quantity))*(parseFloat(user?.adjustLeverage)*2))))-(precent)).toFixed(2)
-                                const procent = ((((parseFloat(record?.startPrice)-parseFloat(positionsPrices[record?.positionData?.symbol])) / parseFloat(record?.startPrice)))*100*parseFloat(record?.leverage)-(precent*2)).toFixed(2);
-                                const fixProfit = record?.ordersId?.TAKE_PROFIT_MARKET ? ((((parseFloat(record?.startPrice)-parseFloat(record?.ordersId?.TAKE_PROFIT_MARKET?.stopPrice)) * ((parseFloat(record?.openedConfig?.quantity))*(parseFloat(user?.adjustLeverage)*2))))-(precent)).toFixed(2) : ( parseFloat(record?.startPrice) * parseFloat(record?.ordersId?.TRAILING_STOP_MARKET?.priceRate)/100).toFixed(2)
+
+                                const precent = parseFloat(record?.positionData?.origQty)*parseFloat(positionsPrices[record?.positionData?.symbol])*parseFloat(record?.openedConfig?.commission)
+                                const profit = ((((parseFloat(record?.startPrice)-parseFloat(positionsPrices[record?.positionData?.symbol])) * parseFloat(record?.positionData?.origQty))-(precent+parseFloat(record?.commission)))).toFixed(2)
+                                const procent = ((((parseFloat(record?.startPrice)-parseFloat(positionsPrices[record?.positionData?.symbol])) / parseFloat(record?.startPrice)))*100*parseFloat(record?.leverage)-(precent+parseFloat(record?.commission))).toFixed(2);
+                                const fixProfit = record?.ordersId?.TAKE_PROFIT_MARKET ? ((((parseFloat(record?.startPrice)-parseFloat(record?.ordersId?.TAKE_PROFIT_MARKET?.stopPrice)) * (parseFloat(record?.positionData?.origQty))))-(precent+parseFloat(record?.commission))).toFixed(2) : ( parseFloat(record?.startPrice) * parseFloat(record?.ordersId?.TRAILING_STOP_MARKET?.priceRate)/100).toFixed(2)
 
                                 return !isNaN(profit) || !isNaN(procent) ?
                                     <div style={{
@@ -271,7 +271,7 @@ const PositionActive = () => {
                                                             borderRadius: '10px',
                                                         }}
                                                         >
-                                                            {(positionsPrices[record?.positionData?.symbol]).toFixed(1)}
+                                                            {(positionsPrices[record?.positionData?.symbol])}
                                                         </div>
                                                     </Badge.Ribbon>
                                                 </div>
@@ -435,42 +435,47 @@ const PositionActive = () => {
                         <Table
                             columns={columns}
                             pagination={false}
-                            // size='middle'
                             expandable={{
                                 expandedRowRender: (record) => (
                                     <div>
-                                        {record?.ordersId?.TAKE_PROFIT_MARKET && !record?.ordersId?.macd && !record?.ordersId?.withoutLoss ?
-                                            <Button type='primary' style={{background:'none', border:'1px solid', marginRight:'16px'}} onClick={() => closeOrder({ symbol:record?.currency,id_order:record?.ordersId?.TAKE_PROFIT_MARKET?.orderId, id: record.key })}>
-                                                Отключить Take Profit
+                                        <div style={{display:'flex', justifyContent:'flex-end', width:'100%'}}>
+                                            {record?.ordersId?.TAKE_PROFIT_MARKET && !record?.ordersId?.macd && !record?.ordersId?.withoutLoss ?
+                                                <Button type='primary' style={{background:'none', border:'1px solid', marginRight:'16px'}} onClick={() => closeOrder({ symbol:record?.currency,id_order:record?.ordersId?.TAKE_PROFIT_MARKET?.orderId, id: record.key })}>
+                                                    Отключить Take Profit
+                                                </Button>
+                                                :
+                                                <></>
+                                            }
+                                            {record?.ordersId?.withoutLoss && !record?.ordersId?.macd ?
+                                                <Button type='primary' style={{background:'none', border:'1px solid', marginRight:'16px'}} onClick={() => closeOrder({ ...record.openedConfig, quantity:record?.positionData?.executedQty, id: record.key })}>
+                                                    Отключить БУ
+                                                </Button>
+                                                :
+                                                <></>
+                                            }
+                                            {record?.ordersId?.TRAILING_STOP_MARKET ?
+                                                <Button type='primary' style={{background:'none', border:'1px solid', marginRight:'16px'}} onClick={() => closeOrder({ symbol:record?.currency,id_order:record?.ordersId?.TRAILING_STOP_MARKET?.orderId, id: record.key })}>
+                                                    Отключить Trailing
+                                                </Button>
+                                                :
+                                                <></>
+                                            }
+                                            {record?.ordersId?.macd && !record?.ordersId?.TAKE_PROFIT_MARKET && !record?.ordersId?.withoutLoss ?
+                                                <Button type='primary' style={{background:'none', border:'1px solid', marginRight:'16px'}} onClick={() => closeOrder({ ...record.openedConfig, quantity:record?.positionData?.executedQty, id: record.key })}>
+                                                    Отключить macd
+                                                </Button>
+                                                :
+                                                <></>
+                                            }
+                                            <Button danger onClick={() => closePosition({ ...record.openedConfig, quantity:record?.positionData?.executedQty, id: record.key })}>
+                                                Закрыть позицию
                                             </Button>
-                                            :
-                                            <></>
-                                        }
-                                        {record?.ordersId?.withoutLoss && !record?.ordersId?.macd ?
-                                            <Button type='primary' style={{background:'none', border:'1px solid', marginRight:'16px'}} onClick={() => closeOrder({ ...record.openedConfig, quantity:record?.positionData?.executedQty, id: record.key })}>
-                                                Отключить БУ
-                                            </Button>
-                                            :
-                                            <></>
-                                        }
-                                        {record?.ordersId?.TRAILING_STOP_MARKET ?
-                                            <Button type='primary' style={{background:'none', border:'1px solid', marginRight:'16px'}} onClick={() => closeOrder({ symbol:record?.currency,id_order:record?.ordersId?.TRAILING_STOP_MARKET?.orderId, id: record.key })}>
-                                                Отключить Trailing
-                                            </Button>
-                                            :
-                                            <></>
-                                        }
-                                        {record?.ordersId?.macd && !record?.ordersId?.TAKE_PROFIT_MARKET && !record?.ordersId?.withoutLoss ?
-                                            <Button type='primary' style={{background:'none', border:'1px solid', marginRight:'16px'}} onClick={() => closeOrder({ ...record.openedConfig, quantity:record?.positionData?.executedQty, id: record.key })}>
-                                                Отключить macd
-                                            </Button>
-                                            :
-                                            <></>
-                                        }
-                                        <Button danger onClick={() => closePosition({ ...record.openedConfig, quantity:record?.positionData?.executedQty, id: record.key })}>
-                                            Закрыть позицию
-                                        </Button>
-                                        {record.description}
+                                            {record.description}
+                                        </div>
+                                        <div style={{display:'grid', gridTemplateColumns:'repeat(3,1fr)', gridTemplateRows:'1fr', gridColumnGap:'10px',gridRowGap:'10px', marginTop:'10px'}}>
+                                            <span style={{margin:'0 auto'}}>Комиссия открытия: {parseFloat(record?.commission).toFixed(6)}</span>
+                                            <span style={{margin:'0 auto'}}>Комиссия закрытия: {((record?.positionData?.origQty * parseFloat(positionsPrices[record?.positionData?.symbol])) * record?.openedConfig?.commission).toFixed(6)}</span>
+                                        </div>
                                     </div>
                                 ),
                             }}
@@ -478,7 +483,6 @@ const PositionActive = () => {
                         />
                         </ConfigProvider>
                     </div>
-
                 :
                 <div> Нет открытых позиций</div>
             }
