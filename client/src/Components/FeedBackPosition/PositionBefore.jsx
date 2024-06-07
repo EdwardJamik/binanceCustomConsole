@@ -117,7 +117,7 @@ const PositionBefore = () => {
                         <div><span style={{
                             color: result > 0 ? 'rgb(14, 203, 129,0.8)' : 'rgba(246, 70, 93, 0.8)',
                             fontSize: '16px'
-                        }}>{parseFloat(profit).toFixed(2)} ({percent}%)</span></div>
+                        }}>{parseFloat(profit).toFixed(2)} ({parseFloat(percent).toFixed(2)}%)</span></div>
                         <span style={{fontSize: '12px'}}>Комиссия открытия: {parseFloat(record?.commission).toFixed(6)}</span>
                         <span style={{fontSize: '12px'}}>Комиссия закрытия: {((parseFloat(record?.ClosePositionData?.q) * parseFloat(record?.ClosePositionData?.ap)) * parseFloat(record?.openedConfig?.commission)).toFixed(6)}</span>
                     </div>
@@ -131,7 +131,7 @@ const PositionBefore = () => {
                         <div><span style={{
                             color: result > 0 ? 'rgb(14, 203, 129,0.8)' : 'rgba(246, 70, 93, 0.8)',
                             fontSize: '16px'
-                        }}>{parseFloat(currentSize).toFixed(2)} ({precent}%)</span></div>
+                        }}>{parseFloat(currentSize).toFixed(2)} ({parseFloat(precent).toFixed(2)}%)</span></div>
                         <span style={{fontSize: '12px'}}>Грязная прибыль: {parseFloat(currentSize).toFixed(6)}</span>
                         <span style={{fontSize: '12px'}}>Комиссия открытия: {parseFloat(record?.commission).toFixed(6)}</span>
                         <span style={{fontSize: '12px'}}>Комиссия закрытия: {parseFloat(precent).toFixed(6)}</span>
