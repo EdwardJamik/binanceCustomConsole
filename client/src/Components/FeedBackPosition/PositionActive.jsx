@@ -103,7 +103,7 @@ const PositionActive = () => {
                                 const precent = parseFloat(record?.positionData?.origQty)*parseFloat(positionsPrices[record?.positionData?.symbol])*parseFloat(record?.openedConfig?.commission)
                                 const profit = ((((parseFloat(positionsPrices[record?.positionData?.symbol]) - parseFloat(record?.startPrice)) * parseFloat(record?.positionData?.origQty)))-(precent+parseFloat(record?.commission))).toFixed(2)
                                 const procent = ((((parseFloat(positionsPrices[record?.positionData?.symbol]) - parseFloat(record?.startPrice)) / parseFloat(record?.startPrice)))*100*parseFloat(record?.leverage)-(precent+parseFloat(record?.commission))).toFixed(2);
-                                const fixProfit = record?.ordersId?.TAKE_PROFIT_MARKET ? ((((parseFloat(record?.ordersId?.TAKE_PROFIT_MARKET?.stopPrice) - parseFloat(record?.startPrice)) * ((parseFloat(record?.openedConfig?.quantity)))))).toFixed(2) : ( parseFloat(record?.startPrice) * parseFloat(record?.ordersId?.TRAILING_STOP_MARKET?.priceRate)/100).toFixed(2)
+                                const fixProfit = record?.ordersId?.withoutLoss?.status ? parseFloat(record?.ordersId?.withoutLoss?.stopPrice).toFixed(2) : record?.ordersId?.TAKE_PROFIT_MARKET ? ((((parseFloat(record?.ordersId?.TAKE_PROFIT_MARKET?.stopPrice) - parseFloat(record?.startPrice)) * ((parseFloat(record?.openedConfig?.quantity)))))).toFixed(2) : ( parseFloat(record?.startPrice) * parseFloat(record?.ordersId?.TRAILING_STOP_MARKET?.priceRate)/100).toFixed(2)
 
                                 return !isNaN(profit) || !isNaN(procent) ?
                                     <div style={{
