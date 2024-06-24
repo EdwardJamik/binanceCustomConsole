@@ -6,8 +6,8 @@ const bodyParser = require('body-parser');
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
 const SocketIOServer = require("./webSocket/websocket");
-// const webSocket = require('./webSocket/websocket')
 const SOCKET_PORT = process.env.SOCKET_PORT || 5030;
+const requestIp = require('request-ip');
 
 app.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*');
@@ -26,6 +26,7 @@ app.use(cors({
     origin: true,
     credentials: true,
 }));
+app.use(requestIp.mw());
 
 const socketServer = new SocketIOServer(SOCKET_PORT,app);
 

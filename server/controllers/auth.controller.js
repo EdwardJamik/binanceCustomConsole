@@ -1,7 +1,11 @@
+const { v4: uuidv4 } = require('uuid');
 const User = require("../models/user.model");
 const { createSecretToken, createBinanceSecretToken} = require("../util/secretToken");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const Order = require("../models/orders.model");
+const Auth = require("../models/auth.model");
+const {bot} = require("../bot");
 
 module.exports.Signup = async (req, res, next) => {
     try {
@@ -27,6 +31,7 @@ module.exports.Login = async (req, res, next) => {
             return res.status(200).json({message:'Fill in all fields', success: false })
         }
         const user = await User.findOne({ username });
+
         if(!user){
             return res.status(200).json({message:'Invalid user name or password', success: false })
         }
@@ -36,11 +41,38 @@ module.exports.Login = async (req, res, next) => {
         if (!auth) {
             return res.status(200).json({message:'Invalid username or password', success: false  })
         }
-        const token = createSecretToken(user._id);
 
-        res.cookie("token", token, {
-            httpOnly: false
-        }).status(201).json({ message: "User successfully authorized", success: true });
+        const ip = req?.clientIp;
+
+        const currentTime = new Date();
+        const timeThreshold = new Date(currentTime - 3 * 60 * 1000);
+
+        const findAuth = await Auth.findOne({
+            chat_id: user?.chat_id,
+            ip: ip,
+            status:null,
+            createdAt: { $gte: timeThreshold }
+        });
+
+        if(!findAuth){
+            const generationKey = uuidv4()
+            await Auth.create({chat_id:user?.chat_id, user_id:user?._id,ip,key:generationKey, status: null})
+
+            await bot.telegram.sendMessage(user?.chat_id, 'Подтвердите авторизацию',{reply_markup: {
+                    inline_keyboard: [
+                        [{ text: '✅ Accept', callback_data: `accept_${String(generationKey)}` },{ text: '❌ Decline', callback_data: `decline_${String(generationKey)}` }],
+                    ]
+                }
+            })
+
+            res.json({success:true,key:generationKey})
+        } else {
+            return res.status(200).json({message:'Ожидает подтверждение по предыдущему запросу', success: false  })
+        }
+
+        // res.cookie("token", token, {
+        //     httpOnly: false
+        // }).status(201).json({ message: "User successfully authorized", success: true });
 
     } catch (error) {
         console.error(error);
@@ -65,6 +97,38 @@ module.exports.getUserData = async (req, res, next) => {
                 }
                 else {
                     return res.json({status: false, message: 'User not found' })
+                }
+            }
+        })
+    } catch (error) {
+        console.error(error);
+    }
+};
+
+module.exports.getUserBeforePosition = async (req, res, next) => {
+    try {
+        const { TOKEN_KEY } = process.env
+
+        const token = req.cookies.token
+
+        if (!token) {
+            return res.json({ status: false, message: 'User not found'  })
+        }
+
+        jwt.verify(token, TOKEN_KEY, async (err, data) => {
+            if (err) {
+            } else {
+                const user = await User.findById(data.id)
+                if (user) {
+                    const ordersBefore = await Order.find({userId: String(user?._id), opened: false}).sort({updatedAt: -1})
+                    const modifiedOrders = ordersBefore.map(order => {
+                        const {_id, ...rest} = order.toObject();
+                        return {key: _id, ...rest};
+                    });
+                    return res.json(modifiedOrders);
+                }
+                else {
+                    return res.json(false)
                 }
             }
         })

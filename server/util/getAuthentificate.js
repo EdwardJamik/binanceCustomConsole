@@ -11,7 +11,6 @@ const socketServer = require("../server");
 
 async function getAuthentificate(token, id) {
     try {
-
         if (token) {
             const user = await setUserToken(token, id)
 
@@ -22,7 +21,6 @@ async function getAuthentificate(token, id) {
 
                 const orders = await Order.find({userId: user?._id, opened: true}).sort({createdAt: -1})
                 const currency = await Order.distinct('currency', {userId: user?._id, opened: true})
-                const ordersBefore = await Order.find({userId: user?._id, opened: false}).sort({updatedAt: -1})
 
                 if (currency?.length) {
                     streamPrice(currency, user?._id, user?.binance_test)
@@ -37,6 +35,7 @@ async function getAuthentificate(token, id) {
                     return {key: _id, ...rest};
                 });
 
+
                 const minPrice = await getMinimumBuyQuantity(user?.symbol, id, userApis?.key_1, userApis?.key_2)
                 const commission = await getCommisionRate(userApis?.key_1, userApis?.key_2, {symbol: user?.symbol}, user)
                 const balance = await getAvailableBalance(userApis?.key_1, userApis?.key_2, user)
@@ -44,7 +43,6 @@ async function getAuthentificate(token, id) {
                 userData = {
                     ...userData,
                     positions: modifiedOrders,
-                    positionsBefore:ordersBefore,
                     commission: commission,
                     balance,
                     type_binance: user?.binance_test,

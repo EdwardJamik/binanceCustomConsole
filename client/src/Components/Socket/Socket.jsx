@@ -13,11 +13,12 @@ export const SocketProvider = ({ children }) => {
     const [cookies, removeCookie] = useCookies();
     const dispatch = useDispatch();
 
-    let mainSocket = cookies?.token ? io.connect(`${import.meta.env.VITE_SOCKET_API}`) : false
+    let mainSocket = io.connect(`${import.meta.env.VITE_SOCKET_API}`)
 
     useEffect(() => {
         if (mainSocket) {
-            mainSocket.emit('authenticate', {token: cookies.token});
+            if(cookies.token)
+                mainSocket.emit('authenticate', {token: cookies.token});
         } else {
             dispatch({type: 'SET_AUTHENTICATION_STATUS', payload: false});
         }
@@ -33,6 +34,10 @@ export const SocketProvider = ({ children }) => {
                     openNotificationWithIcon('warning', 'Warning', data.message);
                 else if (data.type === 'success')
                     openNotificationWithIcon('success', 'Success', data.message);
+            });
+
+            mainSocket.on("cookie-set", ({token}) => {
+                document.cookie = `token=${token}; max-age=${3 * 24 * 60 * 60}; path=/`;
             });
 
             mainSocket.on("userData", (data) => {

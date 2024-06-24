@@ -284,7 +284,7 @@
 
 .controllButton{
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   margin: 40px auto 20px;
   max-width: 400px;
 }

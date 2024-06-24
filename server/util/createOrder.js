@@ -64,7 +64,7 @@ async function createOrder(orderElement, user, id) {
                 console.log(`[${new Date().toLocaleTimeString('uk-UA')}] CREATE ORDER: ${JSON.stringify(querySkeleton)}`)
 
                 const orderPos = await createOrders(order, querySkeleton, user)
-
+                console.log(orderPos)
                 let queryStringBatch = `batchOrders=${encodeURIComponent(JSON.stringify([{...querySkeleton}, ...orderPos?.queryElements]))}&timestamp=${Date.now()}`;
                 const signatureBatch = getSignature(queryStringBatch, key_2)
                 axios.post(`https://${user?.binance_test ? TEST_BINANCE_API_DOMAIN : BINANCE_API_DOMAIN}/fapi/v1/batchOrders?${queryStringBatch}&signature=${signatureBatch}`, null, {
@@ -478,6 +478,7 @@ function createOrders(order,querySkeleton, user){
         }
 
         function createTrailing(activationPrice){
+            console.log(activationPrice)
             let trailingStopMarketQuery = {...querySkeleton};
             trailingStopMarketQuery.side = querySkeleton.positionSide === 'LONG' ? 'SELL' : 'BUY'; // IDK what should be in trailing
 
@@ -490,6 +491,7 @@ function createOrders(order,querySkeleton, user){
                 trailingStopMarketQuery.activatePrice = `${activationPrice}`
             }
 
+            console.log(trailingStopMarketQuery)
             queryElements.push(trailingStopMarketQuery);
         }
     }

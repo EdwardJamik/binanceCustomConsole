@@ -2,6 +2,7 @@
 const initialState = {
     user: {
         isAuthenticated: null,
+        isLogin:null,
     },
     positions:[],
     positionsBefore:[],

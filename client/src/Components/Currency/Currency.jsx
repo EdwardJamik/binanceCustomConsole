@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from 'react';
-import {ConfigProvider, Badge, InputNumber, Select, Spin, Switch} from "antd";
+import {ConfigProvider, Badge, InputNumber, Select, Spin, Switch, TreeSelect, Cascader} from "antd";
 import axios from "axios";
 import {url} from "../../Config.jsx";
 import {useDispatch, useSelector} from "react-redux";
@@ -16,6 +16,7 @@ const Currency = () => {
     const [isCurrency, setCurrency] = useState();
     const [isPrecent, setPrecent] = useState(0);
     const [currencyListOpen, setCurrencyListOpen] = useState(false);
+    const [isSaved, setSaved] = useState(false);
 
     const dispatch = useDispatch();
     const symbol = useSelector(state => state.symbol)
@@ -156,6 +157,41 @@ const Currency = () => {
         setCurrencyListOpen(false);
     };
 
+    const options = [
+        {
+            label: 'Light',
+            value: 'light',
+            children: new Array(20).fill(null).map((_, index) => ({
+                label: `Number ${index}`,
+                value: index,
+            })),
+        },
+        {
+            label: 'Bamboo',
+            value: 'bamboo',
+            children: [
+                {
+                    label: 'Little',
+                    value: 'little',
+                    children: [
+                        {
+                            label: 'Toy Fish',
+                            value: 'fish',
+                        },
+                        {
+                            label: 'Toy Cards',
+                            value: 'cards',
+                        },
+                        {
+                            label: 'Toy Bird',
+                            value: 'bird',
+                        },
+                    ],
+                },
+            ],
+        },
+    ];
+
     return (
         <>
             <div className="" style={{
@@ -166,29 +202,29 @@ const Currency = () => {
                 margin: '0 auto',
                 fontSize: "30px",
                 fontWeight: 'bold',
-                marginBottom:'40px',
+                marginBottom: '40px',
                 color: position ? "rgb(14, 203, 129)" : "rgb(246, 70, 93)"
             }}>
                 {price > 0 ?
                     <>
                         {price}
-                    <span style={{
-                        position: 'absolute',
-                        fontSize: '12px',
-                        right: '0',
-                        bottom: '-10px',
-                        color: '#fff'
-                    }}>
+                        <span style={{
+                            position: 'absolute',
+                            fontSize: '12px',
+                            right: '0',
+                            bottom: '-10px',
+                            color: '#fff'
+                        }}>
                     {symbol}
                     </span>
                     </>
                     :
                     <Spin
-                    indicator={
-                    <LoadingOutlined
-                    style={{
-                    fontSize: 24,
-                }}
+                        indicator={
+                            <LoadingOutlined
+                                style={{
+                                    fontSize: 24,
+                                }}
                                 spin
                             />
                         }
@@ -196,6 +232,7 @@ const Currency = () => {
                 }
 
             </div>
+
             <div style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(3, 1fr)',
@@ -203,12 +240,53 @@ const Currency = () => {
                 gridColumnGap: '0px',
                 gridRowGap: '0px',
                 maxWidth: '600px',
-                width:'100%',
+                width: '100%',
                 margin: '0 auto',
             }}>
-                <div className="currency" onMouseEnter={handleMouseEnter}
+                <ConfigProvider
+                    theme={{
+                        token: {
+                            colorFillContentHover: isSaved ? `rgba(14, 203, 129, 0.3)` : `rgba(246, 70, 93, 0.3)`,
+                            colorFillSecondary: isSaved ? `rgba(14, 203, 129, 0.3)` : `rgba(246, 70, 93, 0.3)`,
+
+                            colorFill: isSaved ? `rgba(14, 203, 129, 0.3)` : `rgba(246, 70, 93, 0.3)`,
+
+                            colorPrimary: isSaved ? `rgba(14, 203, 129, 0.3)` : `rgba(246, 70, 93, 0.3)`,
+
+                            colorPrimaryHover: isSaved ? `rgba(14, 203, 129, 0.3)` : `rgba(246, 70, 93, 0.3)`,
+                            colorInfoHover: isSaved ? `rgba(14, 203, 129, 0.3)` : `rgba(246, 70, 93, 0.3)`,
+                            optionSelectedFontWeight: '600',
+
+                            colorPrimaryBg: isSaved ? `rgba(14, 203, 129, 0.3)` : `rgba(246, 70, 93, 0.3)`,
+                            colorFillTertiary: isSaved ? `rgba(14, 203, 129, 0.3)` : `rgba(246, 70, 93, 0.3)`,
+                            colorTextTertiary: isSaved ? `rgba(14, 203, 129, 0.3)` : `rgba(246, 70, 93, 0.3)`,
+                            colorTextQuaternary: isSaved ? `rgba(14, 203, 129, 0.3)` : `rgba(246, 70, 93, 0.3)`,
+                            colorFillQuaternary: isSaved ? `rgba(14, 203, 129, 0.3)` : `rgba(246, 70, 93, 0.3)`,
+                        },
+                    }}
+                >
+                    <div style={{margin:'0 auto'}}>
+                        <Switch style={{maxWidth: '100px'}} value={isSaved} size={'small'} checkedChildren="избранные" unCheckedChildren="избранные"
+                                onChange={(checked) => setSaved(checked)}
+                        />
+                    </div>
+
+                </ConfigProvider>
+            </div>
+
+            <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(3, 1fr)',
+                gridTemplateRows: '1fr',
+                gridColumnGap: '0px',
+                gridRowGap: '0px',
+                maxWidth: '600px',
+                width: '100%',
+                margin: '0 auto',
+            }}>
+                <div className="currency" style={{flexDirection: 'column'}} onMouseEnter={handleMouseEnter}
                      onMouseLeave={handleMouseLeave}>
-                    <span className='gold'>Валютная пара:</span>
+                    <span className='gold' style={{margin:'0'}}>Валютная пара:</span>
                     <ConfigProvider
                         theme={{
                             token: {
@@ -231,30 +309,55 @@ const Currency = () => {
                             },
                         }}
                     >
-                        <Select
-                            className='currency_selector'
-                            showSearch
-                            dropdownStyle={{
-                                background: 'rgba(7, 7, 7, 0.6)',
-                                border: 'none',
-                                padding: '10px 8px 10px',
-                                textAlign: 'center',
-                                width: '160px',
-                            }}
-                            placeholder="Search currency"
-                            optionFilterProp="children"
-                            filterOption={(input, option) =>
-                                option?.label.toLowerCase().includes(input.toLowerCase())
-                            }
-                            open={currencyListOpen}
-                            filterSort={(optionA, optionB) =>
-                                (optionA?.label ?? '').toLowerCase().localeCompare((optionB?.label ?? '').toLowerCase())
-                            }
-                            onChange={handleCurrencyChange}
-                            options={isCurrency}
-                            defaultValue={symbol}
-                        />
+                        {isSaved ?
+
+                            <Cascader
+                                options={options}
+                                // treeCheckable={true}
+                                // size={'small'}
+                                placeholder={'Please select'}
+                                multiple
+                                maxTagCount="responsive"
+                                style={{width: '100%'}}
+                                dropdownStyle={{
+                                    background: 'rgba(7, 7, 7, 0.6)',
+                                    border: 'none',
+                                    padding: '10px 8px 10px',
+                                    textAlign: 'center',
+                                    // width: '160px',
+                                }}
+                            />
+
+                            :
+
+                            <Select
+                                className='currency_selector'
+                                showSearch
+                                dropdownStyle={{
+                                    background: 'rgba(7, 7, 7, 0.6)',
+                                    border: 'none',
+                                    padding: '10px 8px 10px',
+                                    textAlign: 'center',
+                                    width: '160px',
+                                }}
+                                placeholder="Search currency"
+                                optionFilterProp="children"
+                                filterOption={(input, option) =>
+                                    option?.label.toLowerCase().includes(input.toLowerCase())
+                                }
+                                open={currencyListOpen}
+                                filterSort={(optionA, optionB) =>
+                                    (optionA?.label ?? '').toLowerCase().localeCompare((optionB?.label ?? '').toLowerCase())
+                                }
+                                onChange={handleCurrencyChange}
+                                options={isCurrency}
+                                defaultValue={symbol}
+                            />
+
+                        }
+
                     </ConfigProvider>
+
                 </div>
                 <div className="leverage">
                     <span className='gold'>Кредитное плечо:</span>
@@ -292,7 +395,7 @@ const Currency = () => {
                                 changeOnWheel
                                 style={{width: `100%`}}
                             />
-                        :
+                            :
                             <Spin
                                 indicator={
                                     <LoadingOutlined
@@ -307,7 +410,15 @@ const Currency = () => {
                     </ConfigProvider>
                 </div>
                 <div className="leverage">
-                    <span style={{right: '20%',left:'auto',width:'auto',top:'50%',transform:'translate(40%, 40%)', color:'rgba(255,255,255,.6)', fontSize:'14px'}}>{isPrecent && !isNaN(isPrecent) && user?.currency === symbol ? <>&#8776; {isPrecent.toLocaleString()}</> : <></>}</span>
+                    <span style={{
+                        right: '20%',
+                        left: 'auto',
+                        width: 'auto',
+                        top: '50%',
+                        transform: 'translate(40%, 40%)',
+                        color: 'rgba(255,255,255,.6)',
+                        fontSize: '14px'
+                    }}>{isPrecent && !isNaN(isPrecent) && user?.currency === symbol ? <>&#8776; {isPrecent.toLocaleString()}</> : <></>}</span>
                     <span className='gold'>Сумма инвестиции:</span>
                     <ConfigProvider
                         theme={{
@@ -482,7 +593,7 @@ const Currency = () => {
                         }}
                     >
                         {user?.currency === symbol ?
-                            <Switch checkedChildren="Trail" unCheckedChildren="Trail" checked={user?.trailing?.status}
+                            <Switch checkedChildren="CH" unCheckedChildren="CH" checked={user?.trailing?.status}
                                     onChange={(checked) => {
                                         changeOrders(checked, 3)
                                     }}/>
@@ -546,29 +657,31 @@ const Currency = () => {
 
             <div style={{
                 display: "flex",
-                maxWidth:'800px',
-                margin:'0 auto',
-                gap:'30px'
+                maxWidth: '800px',
+                margin: '0 auto',
+                gap: '30px'
             }}>
 
                 {user?.takeProfit?.status && user?.currency === symbol ?
-                    <div className='dashboard_item' style={{padding: '10px',display:'inline-block'}}>
-                        <Badge.Ribbon text="Take profit" style={{top: '-20px', right:'-18px', background: 'rgba(240, 216, 90, 0.4)'}}>
+                    <div className='dashboard_item' style={{padding: '10px', display: 'inline-block'}}>
+                        <Badge.Ribbon text="Take profit"
+                                      style={{top: '-20px', right: '-18px', background: 'rgba(240, 216, 90, 0.4)'}}>
 
                             <AmountPosition type='takeProfit'/>
 
-                    </Badge.Ribbon>
+                        </Badge.Ribbon>
                     </div>
                     :
                     <></>
                 }
                 {user?.withoutLoss?.status && user?.currency === symbol ?
                     <div className='dashboard_item' style={{padding: '10px'}}>
-                        <Badge.Ribbon text="БУ" style={{top: '-20px', right:'-18px', background: 'rgba(240, 216, 90, 0.4)'}}>
+                        <Badge.Ribbon text="БУ"
+                                      style={{top: '-20px', right: '-18px', background: 'rgba(240, 216, 90, 0.4)'}}>
 
                             <AmountPosition type='withoutLoss'/>
 
-                    </Badge.Ribbon>
+                        </Badge.Ribbon>
                     </div>
                     :
                     <></>
@@ -576,18 +689,20 @@ const Currency = () => {
 
                 {user?.trailing?.status && user?.currency === symbol ?
                     <div className='dashboard_item' style={{padding: '10px'}}>
-                        <Badge.Ribbon text="Trailing" style={{top: '-20px', right:'-18px', background: 'rgba(240, 216, 90, 0.4)'}}>
+                        <Badge.Ribbon text="CH"
+                                      style={{top: '-20px', right: '-18px', background: 'rgba(240, 216, 90, 0.4)'}}>
 
                             <AmountPosition type='trailing'/>
 
-                    </Badge.Ribbon>
+                        </Badge.Ribbon>
                     </div>
                     :
                     <></>
                 }
                 {user?.macd?.status && user?.currency === symbol ?
-                    <div className='dashboard_item' style={{display:'inline-block', padding: '10px', height:'200px'}}>
-                        <Badge.Ribbon text="MACD" style={{top: '-20px', right:'-18px', background: 'rgba(240, 216, 90, 0.4)'}}>
+                    <div className='dashboard_item' style={{display: 'inline-block', padding: '10px', height: '200px'}}>
+                        <Badge.Ribbon text="MACD"
+                                      style={{top: '-20px', right: '-18px', background: 'rgba(240, 216, 90, 0.4)'}}>
 
                             <MacdSetting/>
 

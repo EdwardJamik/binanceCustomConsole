@@ -12,16 +12,18 @@ import axios from "axios";
 import React from "react";
 import {useNotification} from "../../Components/Notification/NotificationContext.jsx";
 import {useDispatch} from "react-redux";
+import {useSocket} from "../../Components/Socket/Socket.jsx";
 
 const SignIn  = () => {
   const {Content} = Layout;
-  const dispatch = useDispatch();
   const { openNotificationWithIcon } = useNotification();
+  const socket = useSocket()
 
   const onFinish = async (values) => {
     axios.post(`${url}/api/v1/login`, {...values}, {withCredentials: true}).then(({data}) => {
       if (data.success) {
-          dispatch({type: 'SET_AUTHENTICATION_STATUS', payload: true})
+        openNotificationWithIcon('success','Success','Запрос на авторизацию отправлен, не обновляйте страницу!' );
+        socket.emit('waitLogin', {key:data?.key});
       } else {
         openNotificationWithIcon(data.success ? 'success' : 'error', data.success ? 'Success' : 'Error', data?.message);
       }

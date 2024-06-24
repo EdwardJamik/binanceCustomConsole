@@ -9,6 +9,7 @@ const {createOrder} = require("../util/createOrder");
 
 let currency = {}
 let user = {}
+let withoutLoss = [{BTCUSDT: [{orderId: '124asf', userId: 'saf', quantity:10, positionSide:'LONG', symbol: 'BTCUSDT', fixPrice: 16.000, upPrice: 16.100, lowPrice: 15.900, fix: true}]}]
 
 async function streamPrice(symbol,id,type_binance) {
     try{
@@ -39,7 +40,9 @@ async function streamPrice(symbol,id,type_binance) {
                     const {p,s} = JSON.parse(event.data)
                     if(user[s]) {
                         socketServer.socketServer.io.emit('positionPrices', [`${s}`, parseFloat(p)])
-                        fixedWithouLoss(s,parseFloat(p))
+
+                        if(withoutLoss[s]?.length)
+                            fixedWithouLoss(s,parseFloat(p),withoutLoss[s])
                     }
 
                 };
@@ -64,31 +67,32 @@ async function streamPrice(symbol,id,type_binance) {
     }
 }
 
-async function fixedWithouLoss(symbol,price) {
+async function fixedWithouLoss(symbol,price,orders) {
     try {
 
-        const findOrder = await Order.find({
-            opened: true,
-            currency: symbol,
-            "ordersId.withoutLoss.status": true,
-        })
+        // const findOrder = await Order.find({
+        //     opened: true,
+        //     currency: symbol,
+        //     "ordersId.withoutLoss.status": true,
+        // })
 
-        for (const order of findOrder) {
+        for (const order of orders) {
 
-            if (order?.openedConfig?.positionSide === 'LONG') {
-                if (!order?.ordersId?.withoutLoss?.fixed && parseFloat(order?.ordersId?.withoutLoss?.fixedPrice) <= parseFloat(price)) {
+            if (order?.positionSide === 'LONG') {
+                if (!order?.fix && parseFloat(order?.fixPrice) <= parseFloat(price)) {
 
-                    await Order.findOneAndUpdate({
-                        _id: order?._id,
+                    await Order.updateOne({
+                        _id: order?.orderId,
                         opened: true,
                         currency: symbol,
                         "ordersId.withoutLoss.fixed": false,
                     }, {
                         "ordersId.withoutLoss.fixed": true
-                    }, {returnDocument: 'after'});
+                    });
 
-                    const user = await User.findOne({_id: order?.userId})
                     console.log(`[${new Date().toLocaleTimeString('uk-UA')}] FIXED POSITION: ${JSON.stringify(order)}`)
+                    const user = await User.findOne({_id: order?.userId})
+
                     const orders = await Order.find({
                         userId: user?._id,
                         opened: true
@@ -102,19 +106,19 @@ async function fixedWithouLoss(symbol,price) {
                     socketServer.socketServer.io.to(user?.token).emit('updatePositionCreated', {
                         positionList: modifiedOrders,
                     });
-                    // console.log('FIXED')
-                } else if (order?.ordersId?.withoutLoss?.fixed && parseFloat(order?.ordersId?.withoutLoss?.fixedPrice) > parseFloat(price)) {
+
+                } else if (order?.fix && parseFloat(order?.fixPrice) > parseFloat(price)) {
                     const user = await User.findOne({_id: order?.userId})
 
-                    await Order.updateOne({_id: order?._id}, {opened: false})
+                    await Order.updateOne({_id: order?.orderId}, {opened: false})
 
                     const orderConf = {
-                        symbol: order?.openedConfig?.symbol,
-                        positionSide: order?.openedConfig?.positionSide,
-                        side: order?.openedConfig?.positionSide === 'LONG' ? 'SELL' : 'BUY',
-                        quantity: order?.openedConfig?.quantity,
+                        symbol: order?.symbol,
+                        positionSide: order?.positionSide,
+                        side: order?.positionSide === 'LONG' ? 'SELL' : 'BUY',
+                        quantity: order?.quantity,
                         type: 'MARKET',
-                        id: String(order?._id)
+                        id: String(order?.orderId)
                     }
 
                     console.log(`[${new Date().toLocaleTimeString('uk-UA')}] CLOSE FIXED POSITION: ${JSON.stringify(orderConf)}`)
@@ -122,18 +126,19 @@ async function fixedWithouLoss(symbol,price) {
                     // console.log('FIXED CLOSE')
                 }
             } else if (order?.openedConfig?.positionSide === 'SHORT') {
-                if (!order?.ordersId?.withoutLoss?.fixed && parseFloat(order?.ordersId?.withoutLoss?.fixedPrice) >= parseFloat(price)) {
-                    await Order.findOneAndUpdate({
-                        _id: order?._id,
+                if (!order?.fix && parseFloat(order?.fix) >= parseFloat(price)) {
+                    await Order.updateOne({
+                        _id: order?.orderId,
                         opened: true,
                         currency: symbol,
                         "ordersId.withoutLoss.fixed": false,
                     }, {
                         "ordersId.withoutLoss.fixed": true
-                    }, {returnDocument: 'after'});
+                    });
 
-                    const user = await User.findOne({_id: order?.userId})
                     console.log(`[${new Date().toLocaleTimeString('uk-UA')}] FIXED POSITION: ${JSON.stringify(order)}`)
+                    const user = await User.findOne({_id: order?.userId})
+
                     const orders = await Order.find({
                         userId: user?._id,
                         opened: true

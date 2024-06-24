@@ -8,6 +8,7 @@ import DateTime from "../../Components/Date/DateTime.jsx";
 import {ConfigProvider, Tabs} from "antd";
 import PositionActive from "../../Components/FeedBackPosition/PositionActive.jsx";
 import PositionBefore from "../../Components/FeedBackPosition/PositionBefore.jsx";
+import CreatePosition from "../../Components/Position/CreatePosition.jsx";
 
 const Home = () => {
     const {pathname} = useLocation();
@@ -40,8 +41,7 @@ const Home = () => {
                     {/*<Currency/>*/}
                 </div>
                 <div className="controllButton">
-                    <CreateLong/>
-                    <CreateShort/>
+                    <CreatePosition/>
                 </div>
 
             </>
@@ -55,6 +55,7 @@ const Home = () => {
                     overflow:'auto'
                 }}
             >
+
                 <ConfigProvider
                 theme={{
                     components: {
@@ -77,25 +78,25 @@ const Home = () => {
                     },
                 }}
             >
-                <Tabs
-                    defaultActiveKey="1"
-                    centered
-                    items={
-                    [
-                        {
-                            label: `Активные`,
-                            key: 1,
-                            children: <PositionActive/>,
-                        },
-                        {
-                            label: `Выполнены`,
-                            key: 2,
-                            children: <PositionBefore/>,
-                        }
-                        ]
+                        <Tabs
+                            defaultActiveKey="1"
+                            centered
+                            items={
+                                [
+                                    {
+                                        label: `Активные`,
+                                        key: 1,
+                                        children: <PositionActive/>,
+                                    },
+                                    {
+                                        label: `Выполнены`,
+                                        key: 2,
+                                        children: <PositionBefore/>,
+                                    }
+                                ]
 
-                    }
-                />
+                            }
+                        />
             </ConfigProvider>
             </div>
         </>

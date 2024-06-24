@@ -25,7 +25,21 @@ class SocketIOServer {
         this.io.on('connection', (socket) => {
 
             socket.on('authenticate', async ({ token }) => {
-                getAuthentificate(token,socket.id)
+                try {
+                    await getAuthentificate(token,socket.id)
+                    const {_id} = await User.findOne({token: socket.id})
+                    socket.join(_id);
+                } catch (e){
+                    console.error(e)
+                }
+            });
+
+            socket.on('waitLogin', async ({key}) => {
+                try {
+                    socket.join(key);
+                } catch (e){
+                    console.error(e)
+                }
             });
 
             socket.on('setSize', async (data) => {

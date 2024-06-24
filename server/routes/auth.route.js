@@ -1,6 +1,6 @@
 const { Signup,Login, Logout} = require("../controllers/auth.controller");
 const {userVerification} = require("../middlewares/authMiddleware");
-const {ChangeAccountData, getUserData, ChangeAccountBinance, getUserBinanceData} = require("../controllers/auth.controller");
+const {ChangeAccountData, getUserData, getUserBeforePosition, ChangeAccountBinance, getUserBinanceData} = require("../controllers/auth.controller");
 const router = require("express").Router();
 
 router.post("/signup", Signup);
@@ -9,6 +9,7 @@ router.post('/logout', Logout);
 router.post('/changeAccountData', ChangeAccountData)
 router.post('/changeAccountBinance', ChangeAccountBinance)
 router.post('/getUserData', getUserData)
+router.post('/getUserBeforePosition', getUserBeforePosition)
 router.post('/getUserBinanceData', getUserBinanceData)
 
 
