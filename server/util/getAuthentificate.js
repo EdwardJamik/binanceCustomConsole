@@ -52,7 +52,10 @@ async function getAuthentificate(token, id) {
                     return {key: _id, ...rest};
                 });
 
-                let userFavorite = user?.favorite.map(pair => ({ label: `${pair?.name} (${pair?.list?.length})`, value: pair.id }));
+                let userFavorite = []
+
+                if(userFavorite)
+                    userFavorite = user?.favorite.map(pair => ({ label: `${pair?.name} (${pair?.list?.length})`, value: pair.id }));user?.favorite.map(pair => ({ label: `${pair?.name} (${pair?.list?.length})`, value: pair.id }));
 
                 const minPrice = await getMinimumBuyQuantity(user?.symbol, id, userApis?.key_1, userApis?.key_2)
                 const commission = await getCommisionRate(userApis?.key_1, userApis?.key_2, {symbol: user?.symbol}, user)
