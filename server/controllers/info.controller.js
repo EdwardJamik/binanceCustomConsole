@@ -41,7 +41,10 @@ module.exports.getEditorCurrency = async (req, res, next) => {
                     .filter(pair => pair.status === 'TRADING')
                     .map(pair => ({ label: pair.symbol, value: pair.symbol }));
 
-                const listFavorite = favorite.map(pair => ({label: pair.name, value: pair.id}));
+                let listFavorite = []
+
+                if(favorite?.length)
+                    listFavorite = favorite.map(pair => ({label: pair.name, value: pair.id}));
 
                 res.json({pairs:pairs,favorite:listFavorite});
             }
