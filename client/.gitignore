@@ -23,6 +23,8 @@ dist-ssr
 *.sln
 *.sw?
 
+/src/Config.jsx
+
 node_modules/
 build/
 dist/

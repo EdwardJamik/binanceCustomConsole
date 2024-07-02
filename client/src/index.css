@@ -45,6 +45,7 @@
 .dashboard_item{
   background-color: rgba(7, 7, 7, 0.6);
   border-radius: 20px;
+  height: max-content;
 
 }
 

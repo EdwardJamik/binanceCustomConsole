@@ -10,6 +10,7 @@ const ProtectedRoute = ({children}) => {
     const page = pathname.replace("/", "");
     const [cookies, removeCookie] = useCookies();
     const [preloader, setPreloader] = useState(false);
+    const isAuthenticated = useSelector((state) => state.isAuthenticated);
 
     function checkCookie(name) {
         const cookies = document.cookie.split(';');
@@ -21,19 +22,18 @@ const ProtectedRoute = ({children}) => {
         }
         return false;
     }
-    const user = useSelector((state) => state.user);
 
     useEffect(() => {
-        if(user?.isAuthenticated === null && !cookies?.token && !checkCookie('token')) {
+        if(isAuthenticated === null && !cookies?.token && !checkCookie('token')) {
             navigate('/sign-in')
             setPreloader(true)
-        } else if(user?.isAuthenticated && page === 'sign-in' && cookies?.token && checkCookie('token')) {
+        } else if(isAuthenticated && page === 'sign-in' && cookies?.token && checkCookie('token')) {
             navigate('/')
             setPreloader(true)
         }
-    }, [user?.isAuthenticated]);
+    }, [isAuthenticated]);
 
-    if(!user?.isAuthenticated && page !== 'sign-in') {
+    if(!isAuthenticated && page !== 'sign-in') {
         return <Navigate to="/sign-in" state={{ from: location}} replace />
     }
 

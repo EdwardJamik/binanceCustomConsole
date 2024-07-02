@@ -1,6 +1,6 @@
 import React, {useState} from 'react';
 import {useSocket} from "../Socket/Socket.jsx";
-import {useSelector} from "react-redux";
+import {useDispatch, useSelector} from "react-redux";
 import {usePrice} from "../PriceSocket/PriceSocket.jsx";
 import {Button, Checkbox, ConfigProvider, Spin, Switch} from "antd";
 import {LoadingOutlined} from "@ant-design/icons";
@@ -10,8 +10,11 @@ const CreatePosition = () => {
 
     const [positionSide, setPositionSide] = useState(true)
 
+    const dispatch = useDispatch();
     const symbol = useSelector(state => state.symbol)
+    const positionType = useSelector(state => state.isTypePosition)
     const user = useSelector(state => state.currentOption)
+    const userOptions = useSelector(state => state)
     const commission = useSelector(state => state.commission.commissionTaker)
 
     const price = usePrice()
@@ -36,17 +39,13 @@ const CreatePosition = () => {
 
         const trailing = {
             status: user.trailing.status,
-            stopPrice: user.trailing.price,
-            currentPrice: parseFloat(price?.price),
-            percent: user.trailing.procent
+            option: userOptions?.trailing ? userOptions?.trailing : null
         }
 
+        console.log(userOptions)
         const withoutLoss = {
             status: user.withoutLoss.status,
-            stopPrice: user.withoutLoss.price,
-            currentPrice: parseFloat(price?.price),
-            percent: user.withoutLoss.procent,
-            commission: commission
+            option: userOptions?.withoutLoss ? {...userOptions?.withoutLoss[0],commission} : null
         }
 
         const macd = {
@@ -72,6 +71,11 @@ const CreatePosition = () => {
         socket.emit('createOrder', {
             order: {...data}
         });
+    }
+
+    const setTypePosition = (type) =>{
+        setPositionSide(type)
+        dispatch({type: 'SET_POSITION_TYPE', payload: type});
     }
 
     return (
@@ -104,23 +108,7 @@ const CreatePosition = () => {
                         },
                     }}
                 >
-                    {user?.currency === symbol ?
-                        <Switch checkedChildren="LONG" unCheckedChildren="SHORT" checked={positionSide}
-                                onChange={(checked) => {
-                                    setPositionSide(checked)
-                                }}/>
-                        :
-                        <Spin
-                            indicator={
-                                <LoadingOutlined
-                                    style={{
-                                        fontSize: 24,
-                                    }}
-                                    spin
-                                />
-                            }
-                        />
-                    }
+                        <Switch checkedChildren="LONG" unCheckedChildren="SHORT" checked={positionType} onChange={(checked) => setTypePosition(checked)}/>
                 </ConfigProvider>
             </div>
 

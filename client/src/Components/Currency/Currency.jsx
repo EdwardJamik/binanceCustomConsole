@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from 'react';
-import {ConfigProvider, Badge, InputNumber, Select, Spin, Switch, TreeSelect, Cascader} from "antd";
+import {ConfigProvider, Badge, InputNumber, Select, Spin, Switch, TreeSelect, Cascader, Button} from "antd";
 import axios from "axios";
 import {url} from "../../Config.jsx";
 import {useDispatch, useSelector} from "react-redux";
@@ -9,6 +9,9 @@ import AmountPosition from "../AmountPosition.jsx";
 import {LoadingOutlined} from "@ant-design/icons";
 import {openNotificationWithIcon} from "../Notification/NotificationService.jsx";
 import MacdSetting from "../MacdSetting/MacdSetting.jsx";
+import TrailingCh from "../InputsComponents/TrailingCH.jsx";
+import WithoutLoss from "../InputsComponents/WithoutLoss.jsx";
+import FavoriteModal from "../FavoriteModal/FavoriteModal.jsx";
 
 const Currency = () => {
 
@@ -22,6 +25,7 @@ const Currency = () => {
     const symbol = useSelector(state => state.symbol)
 
     const {price, position} = usePrice()
+    const favoriteOption = useSelector(state => state.favorite)
     const user = useSelector(state => state.currentOption)
     const commission = useSelector(state => state.commission)
 
@@ -35,6 +39,22 @@ const Currency = () => {
         }
     };
 
+    function roundDecimbal(num) {
+        let strNum = num.toString();
+
+        if (strNum.includes('e')) {
+            num = parseFloat(num).toFixed(9);
+            strNum = num.toString();
+        }
+
+        let dotIndex = strNum.indexOf('.');
+
+        if (dotIndex === -1 || dotIndex === strNum.length - 1) {
+            return parseFloat(num);
+        } else {
+            return strNum.slice(0, dotIndex + 3);
+        }
+    }
     function trimToFirstInteger(number) {
         let integerPart = Math.trunc(number);
 
@@ -48,30 +68,10 @@ const Currency = () => {
             fractionalPart = Math.ceil(fractionalPart * factor) / factor;
         }
 
-        if(integerPart === 0)
-            return `${integerPart + fractionalPart}`;
+        if (integerPart === 0)
+            return parseFloat(`${integerPart + fractionalPart}`);
         else
-            return `${integerPart}`;
-    }
-
-    function roundToFirstSignificantDecimal(number) {
-        let integerPart = Math.trunc(number);
-
-        let fractionalPart = number - integerPart;
-
-        if (fractionalPart !== 0 && integerPart === 0) {
-            let factor = 1;
-            while (fractionalPart * factor < 1) {
-                factor *= 10;
-            }
-            fractionalPart = Math.ceil(fractionalPart * factor) / factor;
-        }
-
-        if(integerPart === 0)
-            return `${integerPart + fractionalPart}`;
-        else
-            return `${integerPart}`;
-
+            return parseFloat(`${integerPart}`);
     }
 
     useEffect(() => {
@@ -311,23 +311,22 @@ const Currency = () => {
                     >
                         {isSaved ?
 
-                            <Cascader
-                                options={options}
-                                // treeCheckable={true}
-                                // size={'small'}
-                                placeholder={'Please select'}
-                                multiple
-                                maxTagCount="responsive"
-                                style={{width: '100%'}}
-                                dropdownStyle={{
-                                    background: 'rgba(7, 7, 7, 0.6)',
-                                    border: 'none',
-                                    padding: '10px 8px 10px',
-                                    textAlign: 'center',
-                                    // width: '160px',
-                                }}
-                            />
-
+                            <div style={{display:'flex', alignItems:'center'}}>
+                                <Cascader
+                                    options={favoriteOption}
+                                    placeholder={'Выберите избранные'}
+                                    multiple
+                                    maxTagCount="responsive"
+                                    style={{width: '200px'}}
+                                    dropdownStyle={{
+                                        background: 'rgba(7, 7, 7, 0.6)',
+                                        border: 'none',
+                                        padding: '10px 8px 10px',
+                                        textAlign: 'center',
+                                    }}
+                                />
+                                <FavoriteModal/>
+                            </div>
                             :
 
                             <Select
@@ -383,7 +382,6 @@ const Currency = () => {
                             },
                         }}
                     >
-                        {user?.currency === symbol ?
                             <InputNumber
                                 className='inputLeverage'
                                 min={1}
@@ -395,18 +393,6 @@ const Currency = () => {
                                 changeOnWheel
                                 style={{width: `100%`}}
                             />
-                            :
-                            <Spin
-                                indicator={
-                                    <LoadingOutlined
-                                        style={{
-                                            fontSize: 24,
-                                        }}
-                                        spin
-                                    />
-                                }
-                            />
-                        }
                     </ConfigProvider>
                 </div>
                 <div className="leverage">
@@ -418,7 +404,7 @@ const Currency = () => {
                         transform: 'translate(40%, 40%)',
                         color: 'rgba(255,255,255,.6)',
                         fontSize: '14px'
-                    }}>{isPrecent && !isNaN(isPrecent) && user?.currency === symbol ? <>&#8776; {isPrecent.toLocaleString()}</> : <></>}</span>
+                    }}>{isPrecent && !isNaN(isPrecent) ? <>&#8776; {isPrecent.toLocaleString()}</> : <></>}</span>
                     <span className='gold'>Сумма инвестиции:</span>
                     <ConfigProvider
                         theme={{
@@ -442,12 +428,12 @@ const Currency = () => {
                             },
                         }}
                     >
-                        {user?.currency === symbol && price ?
+                        {price ?
                             <>
                                 <InputNumber
                                     className='inputLeverage size'
                                     min={(user.minCurrencyPrice * price).toFixed(2)}
-                                    value={parseFloat(user.amount).toFixed(2)}
+                                    value={roundDecimbal(user.amount)}
                                     step={0.1}
                                     onChange={(value) => onChangeSize(value, false)}
                                     onBlur={() => onChangeSize(user?.amount, true)}
@@ -505,7 +491,7 @@ const Currency = () => {
                             },
                         }}
                     >
-                        {user?.currency === symbol ?
+
                             <Switch
                                 checkedChildren="TP"
                                 unCheckedChildren="TP"
@@ -514,18 +500,6 @@ const Currency = () => {
                                     changeOrders(checked, 1)
                                 }}
                             />
-                            :
-                            <Spin
-                                indicator={
-                                    <LoadingOutlined
-                                        style={{
-                                            fontSize: 24,
-                                        }}
-                                        spin
-                                    />
-                                }
-                            />
-                        }
                     </ConfigProvider>
 
                 </div>
@@ -553,23 +527,11 @@ const Currency = () => {
                             },
                         }}
                     >
-                        {user?.currency === symbol ?
+
                             <Switch checkedChildren="БУ" unCheckedChildren="БУ" checked={user?.withoutLoss?.status}
                                     onChange={(checked) => {
                                         changeOrders(checked, 2)
                                     }}/>
-                            :
-                            <Spin
-                                indicator={
-                                    <LoadingOutlined
-                                        style={{
-                                            fontSize: 24,
-                                        }}
-                                        spin
-                                    />
-                                }
-                            />
-                        }
                     </ConfigProvider>
                 </div>
 
@@ -592,23 +554,11 @@ const Currency = () => {
                             },
                         }}
                     >
-                        {user?.currency === symbol ?
+
                             <Switch checkedChildren="CH" unCheckedChildren="CH" checked={user?.trailing?.status}
                                     onChange={(checked) => {
                                         changeOrders(checked, 3)
                                     }}/>
-                            :
-                            <Spin
-                                indicator={
-                                    <LoadingOutlined
-                                        style={{
-                                            fontSize: 24,
-                                        }}
-                                        spin
-                                    />
-                                }
-                            />
-                        }
                     </ConfigProvider>
                 </div>
                 <div>
@@ -634,23 +584,10 @@ const Currency = () => {
                             },
                         }}
                     >
-                        {user?.currency === symbol ?
                             <Switch checkedChildren="macd" unCheckedChildren="macd" checked={user?.macd?.status}
                                     onChange={(checked) => {
                                         changeOrders(checked, 4)
                                     }}/>
-                            :
-                            <Spin
-                                indicator={
-                                    <LoadingOutlined
-                                        style={{
-                                            fontSize: 24,
-                                        }}
-                                        spin
-                                    />
-                                }
-                            />
-                        }
                     </ConfigProvider>
                 </div>
             </div>
@@ -662,7 +599,7 @@ const Currency = () => {
                 gap: '30px'
             }}>
 
-                {user?.takeProfit?.status && user?.currency === symbol ?
+                {user?.takeProfit?.status ?
                     <div className='dashboard_item' style={{padding: '10px', display: 'inline-block'}}>
                         <Badge.Ribbon text="Take profit"
                                       style={{top: '-20px', right: '-18px', background: 'rgba(240, 216, 90, 0.4)'}}>
@@ -674,12 +611,12 @@ const Currency = () => {
                     :
                     <></>
                 }
-                {user?.withoutLoss?.status && user?.currency === symbol ?
+                {user?.withoutLoss?.status ?
                     <div className='dashboard_item' style={{padding: '10px'}}>
                         <Badge.Ribbon text="БУ"
                                       style={{top: '-20px', right: '-18px', background: 'rgba(240, 216, 90, 0.4)'}}>
 
-                            <AmountPosition type='withoutLoss'/>
+                            <WithoutLoss/>
 
                         </Badge.Ribbon>
                     </div>
@@ -687,19 +624,19 @@ const Currency = () => {
                     <></>
                 }
 
-                {user?.trailing?.status && user?.currency === symbol ?
+                {user?.trailing?.status ?
                     <div className='dashboard_item' style={{padding: '10px'}}>
-                        <Badge.Ribbon text="CH"
-                                      style={{top: '-20px', right: '-18px', background: 'rgba(240, 216, 90, 0.4)'}}>
+                        <Badge.Ribbon text="CH" style={{top: '-20px', right: '-18px', background: 'rgba(240, 216, 90, 0.4)'}}>
 
-                            <AmountPosition type='trailing'/>
+                            <TrailingCh/>
 
                         </Badge.Ribbon>
                     </div>
                     :
                     <></>
                 }
-                {user?.macd?.status && user?.currency === symbol ?
+
+                {user?.macd?.status  ?
                     <div className='dashboard_item' style={{display: 'inline-block', padding: '10px', height: '200px'}}>
                         <Badge.Ribbon text="MACD"
                                       style={{top: '-20px', right: '-18px', background: 'rgba(240, 216, 90, 0.4)'}}>
@@ -711,7 +648,6 @@ const Currency = () => {
                     :
                     <></>
                 }
-
             </div>
         </>
     );

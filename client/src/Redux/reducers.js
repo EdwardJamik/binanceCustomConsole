@@ -1,16 +1,20 @@
 
 const initialState = {
-    user: {
-        isAuthenticated: null,
-        isLogin:null,
-    },
+    isAuthenticated: null,
+    isTypePosition:'LONG',
     positions:[],
     positionsBefore:[],
     socketPrice:[],
     symbol:null,
+    trailing:null,
+    withoutLoss:null,
     type_binance:null,
     balance:{'USDT':0},
-    currentSocketPrice: {current:null,other:[null]},
+    currentSocketPrice: {
+        current:null,
+        other:[null]
+    },
+    favorite:[],
     positionPrice:{},
     commission:{commissionTaker:null,commissionMaker:null},
     currentOption: {
@@ -19,26 +23,25 @@ const initialState = {
         adjustLeverage:"2",
         maxAdjustLeverage:"100",
         currencyPrice: 0,
-        currency:null,
         takeProfit:{
-            status:true,
+            status:false,
             price:0,
             procent:false
         },
         trailing:{
-            status:true,
+            status:false,
             price:0,
             procent:false
         },
         macd:{
-            status:true,
+            status:false,
             type: "long",
             type_g: "long",
             number:2,
             timeFrame:"5m"
         },
         withoutLoss:{
-            status:true,
+            status:false,
             price:0,
             procent:false
         }
@@ -50,19 +53,25 @@ const authenticationReducer = (state = initialState, action) => {
         case 'SET_AUTHENTICATION_STATUS':
             return {
                 ...state,
-                user: {
-                    ...state.user,
-                    isAuthenticated: action.payload,
-                }
+                isAuthenticated: action.payload,
             };
             break
-        case 'SET_POSITION_PRICE':
+        case 'SET_TRAILING_DATA':
             return {
                 ...state,
-                user: {
-                    ...state.user,
-                    isAuthenticated: action.payload,
-                }
+                trailing: action.payload,
+            }
+            break
+        case 'SET_WITHOUTLOSS_DATA':
+            return {
+                ...state,
+                withoutLoss: action.payload,
+            }
+            break
+        case 'SET_POSITION_TYPE':
+            return {
+                ...state,
+                isTypePosition: action.payload,
             };
             break
         case 'FILTERED_CURRENCY':

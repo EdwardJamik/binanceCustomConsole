@@ -12,6 +12,25 @@ const {createOrder} = require("../util/createOrder");
 const {cancelOrder} = require("../util/cancelOrder");
 const getAuthentificate = require("../util/getAuthentificate");
 
+function trimToFirstInteger(number) {
+    let integerPart = Math.trunc(number);
+
+    let fractionalPart = number - integerPart;
+
+    if (fractionalPart !== 0 && integerPart === 0) {
+        let factor = 1;
+        while (fractionalPart * factor < 1) {
+            factor *= 10;
+        }
+        fractionalPart = Math.ceil(fractionalPart * factor) / factor;
+    }
+
+    if (integerPart === 0)
+        return parseFloat(`${integerPart + fractionalPart}`);
+    else
+        return parseFloat(`${integerPart}`);
+}
+
 class SocketIOServer {
     constructor(port, app) {
         this.app = app;
@@ -57,7 +76,7 @@ class SocketIOServer {
                         }
                     });
 
-                    await User.updateOne({token: socket.id}, {currentOption: {...user.currentOption,[`${user.symbol}`]:userData}})
+                    await User.updateOne({token: socket.id}, {currentOption: {...user.currentOption, amount: data.value}})
                 }
             });
 
@@ -75,7 +94,6 @@ class SocketIOServer {
                         await User.updateOne({token: socket.id}, {
                             currentOption: {
                                 ...user.currentOption,
-                                [`${user.symbol}`]: value
                             }
                         })
                     }
@@ -109,23 +127,38 @@ class SocketIOServer {
                         const headers = getHeaders(userApis?.key_1)
                         axios.post(`https://${user?.binance_test ? TEST_BINANCE_API_DOMAIN : BINANCE_API_DOMAIN}/fapi/v1/leverage?symbol=${user?.symbol}&leverage=${data?.value}&timestamp=${timestamp}&signature=${signature}`, {},{headers}).then(async (response) => {
                             if (response.data.leverage) {
-
-                                const minPrice = await getMinimumBuyQuantity(user.symbol, socket, userApis?.key_1, userApis?.key_2)
-
-                                userData = {
-                                    currentOption: {
-                                        amount: parseFloat(user?.currentOption[user.symbol].amount) < parseFloat(minPrice?.minimumQuantity)*parseFloat(data?.price) ? (parseFloat(minPrice?.minimumQuantity)*parseFloat(data?.price)).toFixed(2) : user?.currentOption[user.symbol].amount,
-                                        adjustLeverage: response.data.leverage,
-                                        minCurrencyPrice: minPrice?.minimumQuantity
+                                const minPrice = await getMinimumBuyQuantity(user.symbol, socket.id, userApis?.key_1, userApis?.key_2)
+                                console.log(minPrice)
+                                if(user?.currentOption){
+                                    userData = {
+                                        currentOption: {
+                                            amount: parseFloat(user?.currentOption.amount) < parseFloat(minPrice?.minimumQuantity)*parseFloat(data?.price) ? parseFloat(minPrice?.minimumQuantity)*parseFloat(data?.price) : parseFloat(user?.currentOption.amount),
+                                            adjustLeverage: response.data.leverage,
+                                            minCurrencyPrice: parseFloat(minPrice?.minimumQuantity),
+                                            maxAdjustLeverage: parseFloat(minPrice?.maxAdjustLeverage)
+                                        }
                                     }
+                                    await User.updateOne({token: socket.id}, {currentOption: {...userData.currentOption}})
+                                } else {
+                                    userData = {
+                                        currentOption: {
+                                            amount: parseFloat(minPrice?.minimumQuantity)*parseFloat(data?.price),
+                                            adjustLeverage: response.data.leverage,
+                                            minCurrencyPrice: parseFloat(minPrice?.minimumQuantity),
+                                            maxAdjustLeverage: parseFloat(minPrice?.maxAdjustLeverage)
+                                        }
+                                    }
+                                    await User.updateOne({token: socket.id}, {currentOption: {...userData.currentOption}})
                                 }
+
+                                this.io.to(socket.id).emit('userData', {...userData});
 
                                 this.io.to(socket.id).emit('userMessage', {
                                     type: 'success',
                                     message: `Кредитное плечо успешно изменено`
                                 });
 
-                                await User.updateOne({token: socket.id}, {currentOption: {...user.currentOption,[`${user.symbol}`]: {...user.currentOption[`${user.symbol}`],adjustLeverage: response.data.leverage}}})
+
                             } else {
                                 this.io.to(socket.id).emit('userMessage', {
                                     type: 'error',
@@ -161,15 +194,15 @@ class SocketIOServer {
                         const minPrice = await getMinimumBuyQuantity(data, socket.id, userApis?.key_1, userApis?.key_2)
 
                         if (minPrice) {
-                            if (user?.currentOption[data]) {
-                                if (parseFloat(user?.currentOption[data]?.amount) < parseFloat(minPrice?.minimumQuantity)) {
+                            if (user?.currentOption) {
+                                if (parseFloat(user?.currentOption?.amount) < parseFloat(minPrice?.minimumQuantity)) {
 
                                     userData = {
                                         symbol: data,
                                         type_binance: user?.binance_test,
                                         currentOption: {
-                                            ...user?.currentOption[data],
-                                            amount: `${minPrice?.minimumQuantity}`,
+                                            ...user?.currentOption,
+                                            amount: trimToFirstInteger(`${minPrice?.minimumQuantity}`),
                                             adjustLeverage: minPrice?.response,
                                             minCurrencyPrice: minPrice?.minimumQuantity,
                                             maxAdjustLeverage:minPrice?.maxAdjustLeverage
@@ -182,11 +215,6 @@ class SocketIOServer {
                                         symbol: data,
                                         currentOption: {
                                             ...user?.currentOption,
-                                            [data]: {
-                                                ...user.currentOption[data],
-                                                amount: `${minPrice?.minimumQuantity}`,
-                                                adjustLeverage: minPrice?.response
-                                            }
                                         }
                                     })
 
@@ -196,7 +224,7 @@ class SocketIOServer {
                                         symbol: data,
                                         type_binance: user?.binance_test,
                                         currentOption: {
-                                            ...user?.currentOption[data],
+                                            ...user?.currentOption,
                                             adjustLeverage: minPrice?.response,
                                             minCurrencyPrice: minPrice?.minimumQuantity,
                                             maxAdjustLeverage:minPrice?.maxAdjustLeverage
@@ -205,18 +233,10 @@ class SocketIOServer {
 
                                     this.io.to(socket.id).emit('userData', userData);
 
-                                    // io.to(socket.id).emit('updateMinPrice',
-                                    //     minPrice?.minimumQuantity
-                                    // );
-
                                     await User.updateOne({_id: user?._id}, {
                                         symbol: data,
                                         currentOption: {
                                             ...user?.currentOption,
-                                            [data]: {
-                                                ...user.currentOption[data],
-                                                adjustLeverage: minPrice?.response,
-                                            }
                                         }
                                     })
                                 }
@@ -227,38 +247,9 @@ class SocketIOServer {
                                     symbol: data,
                                     currentOption: {
                                         ...user?.currentOption,
-                                        [data]: {
-                                            currency: data,
-                                            amount: `${minPrice?.response}`,
-                                            adjustLeverage: minPrice?.response,
-                                            currencyPrice: 0,
-                                            takeProfit: {
-                                                status: false,
-                                                price: 0,
-                                                procent: false
-                                            },
-                                            trailing: {
-                                                status: false,
-                                                price: 0,
-                                                procent: false
-                                            },
-                                            macd: {
-                                                status: false,
-                                                type: 'LONG',
-                                                number: 2,
-                                                timeFrame: '5m'
-                                            },
-                                            withoutLoss: {
-                                                status: false,
-                                                price: 0,
-                                                procent: false
-                                            }
-                                        }
                                     }
                                 })
-                                const updatedUser = await User.findOne({_id: user?._id})
 
-                                console.log('tut')
                                 this.io.to(socket.id).emit('userData', userData);
                             }
                         } else {

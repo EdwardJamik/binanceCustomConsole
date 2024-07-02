@@ -29,32 +29,12 @@ const userSchema = new mongoose.Schema({
         type: String,
         default:'BTCUSDT'
     },
+    favorite: {
+        type: Array,
+        default:[]
+    },
     currentOption: {
         type: Object,
-        default: {
-            'BTCUSDT': {
-                amount: '0',
-                adjustLeverage: '2',
-                currencyPrice: 0,
-                takeProfit: {
-                    price: 0,
-                    procent: false
-                },
-                trailing: {
-                    price: 0,
-                    procent: false
-                },
-                macd: {
-                    type: 'LONG',
-                    number: 2,
-                    timeFrame: '5m'
-                },
-                withoutLoss: {
-                    price: 0,
-                    procent: false
-                }
-            }
-        }
     },
     updatedAt: {
         type: Date,

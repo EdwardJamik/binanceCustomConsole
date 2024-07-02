@@ -28,36 +28,41 @@ export const SocketPrice = ({ children }) => {
         const httpUrl = `https://${type_binance ? BINANCE_TEST_API : BINANCE_API}/fapi/v2/ticker/price?symbol=${symbol}`;
 
         const connectWebSocket = () => {
-            const ws = new WebSocket(wsUrl);
-            wsRef.current = ws;
+            try {
+                console.log(wsUrl)
+                const ws = new WebSocket(wsUrl);
+                wsRef.current = ws;
 
-            ws.onopen = () => {
-                console.log(`[ONOPEN] Open price socket ${symbol}`);
-                setCurrenctPrice(symbol)
-                axios.get(httpUrl).then((response) => {
-                    const p = response.data.price;
-                    updatePrice(p);
-                }).catch(error => console.error('Error fetching initial price:', error));
-            };
+                ws.onopen = () => {
+                    console.log(`[ONOPEN] Open price socket ${symbol}`);
+                    setCurrenctPrice(symbol)
+                    axios.get(httpUrl).then((response) => {
+                        const p = response.data.price;
+                        updatePrice(p);
+                    }).catch(error => console.error('Error fetching initial price:', error));
+                };
 
-            ws.onmessage = event => {
-                const { p, s } = JSON.parse(event.data);
-                if (symbol === s) {
-                    updatePrice(p);
-                }
-            };
+                ws.onmessage = event => {
+                    const { p, s } = JSON.parse(event.data);
+                    if (symbol === s) {
+                        updatePrice(p);
+                    }
+                };
 
-            ws.onclose = () => {
-                console.log(`[ONCLOSE] Close price socket ${symbol}`);
+                ws.onclose = () => {
+                    console.log(`[ONCLOSE] Close price socket ${symbol}`);
 
-                if(symbol === currenctPrice)
-                setTimeout(connectWebSocket, 500);
-            };
+                    if(symbol === currenctPrice)
+                        setTimeout(connectWebSocket, 500);
+                };
 
-            ws.onerror = error => {
-                console.error('WebSocket error:', error);
-                ws.close();
-            };
+                ws.onerror = error => {
+                    console.error('WebSocket error:', error);
+                    ws.close();
+                };
+            } catch (e){
+                console.error(e)
+            }
         };
 
         const updatePrice = (newPrice) => {

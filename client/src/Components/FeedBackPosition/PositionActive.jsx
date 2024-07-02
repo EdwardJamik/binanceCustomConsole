@@ -421,9 +421,9 @@ const PositionActive = () => {
                 width: '100%',
                 background: '#0E0E0E',
             }}>
-                <div style={{maxWidth:'800px', width:'100%', margin:'0 auto', color: 'rgba(246, 70, 93, 0.8)', fontSize: '16px',marginBottom:'10px'}}>
-                    Прибыль: -0.38
-                </div>
+                {/*<div style={{maxWidth:'800px', width:'100%', margin:'0 auto', color: 'rgba(246, 70, 93, 0.8)', fontSize: '16px',marginBottom:'10px'}}>*/}
+                {/*    Прибыль: -0.38*/}
+                {/*</div>*/}
 
                 {positions ?
 
