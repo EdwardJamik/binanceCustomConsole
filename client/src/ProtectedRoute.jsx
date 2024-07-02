@@ -30,6 +30,9 @@ const ProtectedRoute = ({children}) => {
         } else if(isAuthenticated && page === 'sign-in' && cookies?.token && checkCookie('token')) {
             navigate('/')
             setPreloader(true)
+        } else if(isAuthenticated === false){
+            navigate('/sign-in')
+            setPreloader(true)
         }
     }, [isAuthenticated]);
 

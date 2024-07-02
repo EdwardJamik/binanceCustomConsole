@@ -15,7 +15,7 @@ const WithoutLoss = () => {
             {
                 price: 0,
                 deviation: 0,
-                isDeviationType: 'fixed',
+                isDeviationType: 'percent',
                 isPriceType: 'fixed'
             }
         ]
@@ -34,19 +34,24 @@ const WithoutLoss = () => {
         }
     };
 
-    function trimToFirstInteger(num) {
-        let strNum = num.toString();
-        let dotIndex = strNum.indexOf('.');
-        if (dotIndex === -1 || dotIndex === strNum.length - 1) {
-            return num;
-        } else {
-            let nextDigitIndex = dotIndex + 1;
-            while (nextDigitIndex < strNum.length && strNum[nextDigitIndex] === '0') {
-                nextDigitIndex++;
-            }
-            return parseFloat(strNum.slice(0, nextDigitIndex + 4));
-        }
-    }
+    // function trimToFirstInteger(number) {
+    //     let integerPart = Math.trunc(number);
+    //
+    //     let fractionalPart = number - integerPart;
+    //
+    //     if (fractionalPart !== 0 && integerPart === 0) {
+    //         let factor = 4;
+    //         while (fractionalPart * factor < 1) {
+    //             factor *= 10;
+    //         }
+    //         fractionalPart = Math.ceil(fractionalPart * factor) / factor;
+    //     }
+    //
+    //     if (integerPart === 0)
+    //         return parseFloat(`${integerPart + fractionalPart}`);
+    //     else
+    //         return parseFloat(`${integerPart}`);
+    // }
 
     const handleTypeChange = (value, index, type) => {
         let trailingData = [...isTrailingData]
@@ -68,7 +73,7 @@ const WithoutLoss = () => {
                 }}
                 onChange={(value) => handleTypeChange(value, index, type === 'price' ? 'isPriceType' : 'isDeviationType')}
             >
-                <Option default value="fixed">$</Option>
+                {type === 'price' ?  <Option default value="fixed">$</Option> : <></> }
                 <Option value="percent">%</Option>
             </Select>
         )
@@ -96,13 +101,13 @@ const WithoutLoss = () => {
                         isTrailingData?.map((item, index) => {
 
                             const currentSize =  (parseFloat(user?.amount)/parseFloat(price))
-                            const cross = isTrailingData[0]?.isPriceType  === 'fixed' ? parseFloat(isTrailingData[0]?.price) : ((parseFloat(price) * parseFloat(isTrailingData[0]?.price)) / 100)
-                            const fee = (trimToFirstInteger(parseFloat(currentSize)*parseFloat(user?.adjustLeverage))*parseFloat(price)*parseFloat(commission.commissionTaker))*2
+                            const cross = isTrailingData[0]?.isPriceType  === 'fixed' ? parseFloat(isTrailingData[0]?.price) : (parseFloat(isTrailingData[0]?.price)*(parseFloat(price)) / 100)
+                            const fee = ((parseFloat(currentSize)*parseFloat(user?.adjustLeverage))*parseFloat(price)*parseFloat(commission.commissionTaker))*2
 
                             const priceProcent = user[`withoutLoss`].procent
 
-                            const withousLossShort = (((parseFloat(user?.amount)*parseFloat(user?.adjustLeverage)) - (parseFloat(cross)+parseFloat(fee))) * parseFloat(price)) / (parseFloat(user?.amount)*parseFloat(user?.adjustLeverage))
                             const withousLossLong = (((parseFloat(user?.amount)*parseFloat(user?.adjustLeverage)) + (parseFloat(cross)+parseFloat(fee))) * parseFloat(price)) / (parseFloat(user?.amount)*parseFloat(user?.adjustLeverage))
+                            const withousLossShort = (((parseFloat(user?.amount)*parseFloat(user?.adjustLeverage)) - (parseFloat(cross)+parseFloat(fee))) * parseFloat(price)) / (parseFloat(user?.amount)*parseFloat(user?.adjustLeverage))
 
                             return (
                                 <div key={index} style={{position: 'relative'}}>
@@ -151,9 +156,9 @@ const WithoutLoss = () => {
                                             color: '#fff'
                                         }}>
                                            {positionType ?
-                                               trimToFirstInteger(withousLossLong)
+                                               parseFloat(withousLossLong).toFixed(6)
                                                :
-                                               trimToFirstInteger(withousLossShort)
+                                               parseFloat(withousLossShort).toFixed(6)
                                            }
                                        </span>
                                         <span style={{
@@ -163,9 +168,9 @@ const WithoutLoss = () => {
                                             color: '#fff'
                                         }}>
                                             {positionType ?
-                                                item?.isDeviationType === 'fixed' ? <>min: {trimToFirstInteger(parseFloat(withousLossLong) - parseFloat(item?.deviation))}<br/>max: {trimToFirstInteger(parseFloat(withousLossLong) + parseFloat(item?.deviation))}</> : <>min: {trimToFirstInteger(parseFloat(withousLossLong) - parseFloat(item?.deviation))}<br/>max: {trimToFirstInteger(parseFloat(withousLossLong) + (parseFloat(price) * parseFloat(item?.deviation) / 100))}</>
+                                                item?.isDeviationType === 'fixed' ? <>min: {(parseFloat(withousLossLong) - parseFloat(item?.deviation)).toFixed(6)}<br/>max: {(parseFloat(withousLossLong) + parseFloat(item?.deviation)).toFixed(6)}</> : <>min: {(parseFloat(withousLossLong) - (parseFloat(price) * parseFloat(item?.deviation) / 100)).toFixed(6)}<br/>max: {(parseFloat(withousLossLong) + (parseFloat(price) * parseFloat(item?.deviation) / 100)).toFixed(6)}</>
                                                 :
-                                                item?.isDeviationType === 'fixed' ? <>min: {trimToFirstInteger(parseFloat(withousLossShort) + parseFloat(item?.deviation))}<br/>max: {trimToFirstInteger(parseFloat(withousLossShort) - parseFloat(item?.deviation))}</> : <>min: {trimToFirstInteger(parseFloat(withousLossShort) + parseFloat(item?.deviation))}<br/>max: {trimToFirstInteger(parseFloat(withousLossShort) - (parseFloat(price) * parseFloat(item?.deviation) / 100))}</>
+                                                item?.isDeviationType === 'fixed' ? <>min: {(parseFloat(withousLossShort) + parseFloat(item?.deviation)).toFixed(6)}<br/>max: {(parseFloat(withousLossShort) - parseFloat(item?.deviation)).toFixed(6)}</> : <>min: {(parseFloat(withousLossShort) + (parseFloat(price) * parseFloat(item?.deviation) / 100)).toFixed(6)}<br/>max: {(parseFloat(withousLossShort) - (parseFloat(price) * parseFloat(item?.deviation) / 100)).toFixed(6)}</>
                                             }
                                        </span>
                                     </div>

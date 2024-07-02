@@ -8,13 +8,11 @@ const TrailingCh = () => {
 
     const dispatch = useDispatch();
 
-    const {price, position} = usePrice()
-
     const [isTrailingData, setTrailingData] = useState([
             {
                 price: 0,
                 deviation: 0,
-                isDeviationType: 'fixed',
+                isDeviationType: 'percent',
                 isPriceType: 'fixed'
             }
         ]
@@ -65,7 +63,7 @@ const TrailingCh = () => {
         let trailingData = [...isTrailingData,{
             price: 0,
             deviation: 0,
-            isDeviationType: 'fixed',
+            isDeviationType: 'percent',
             isPriceType: 'fixed'
         }]
 
@@ -93,7 +91,7 @@ const TrailingCh = () => {
                 }}
                 onChange={(value) => handleTypeChange(value, index, type === 'price' ? 'isPriceType' : 'isDeviationType')}
             >
-                <Option default value="fixed">$</Option>
+                {type === 'price' ?  <Option default value="fixed">$</Option> : <></> }
                 <Option value="percent">%</Option>
             </Select>
         )

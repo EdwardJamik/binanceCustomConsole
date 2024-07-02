@@ -75,6 +75,7 @@ async function createOrder(orderElement, userData, id) {
 
                     const orderPos = await createOrders(order, querySkeleton, user)
                      return  false
+
                     let queryStringBatch = `batchOrders=${encodeURIComponent(JSON.stringify([{...querySkeleton}, ...orderPos?.queryElements]))}&timestamp=${Date.now()}`;
                     const signatureBatch = getSignature(queryStringBatch, key_2)
                     axios.post(`https://${user?.binance_test ? TEST_BINANCE_API_DOMAIN : BINANCE_API_DOMAIN}/fapi/v1/batchOrders?${queryStringBatch}&signature=${signatureBatch}`, null, {
@@ -261,7 +262,7 @@ async function createOrder(orderElement, userData, id) {
                             });
 
 
-                            removeStreamPrice.removeStreamPrice(user?.token)
+                            // removeStreamPrice.removeStreamPrice(user?.token)
                         }).catch((e) => {
                             console.log(e)
                             console.log(`[${new Date().toLocaleTimeString('uk-UA')}] ERROR CANCELED ADMIN ORDER STEP 2: ${e}`)
@@ -310,7 +311,7 @@ async function createOrder(orderElement, userData, id) {
                             message: `Ошибка закрытия позиции: ${responseBatch?.data[0]?.msg}`
                         });
 
-                        removeStreamPrice.removeStreamPrice(user?.token)
+                        // removeStreamPrice.removeStreamPrice(user?.token)
                     }
                 }).catch(async (e) => {
                     console.log(`[${new Date().toLocaleTimeString('uk-UA')}] ERROR CANCELED ADMIN ORDER STEP 2: ${JSON.stringify(e?.response?.data)}`)
@@ -390,60 +391,73 @@ function createOrders(order,querySkeleton, user){
         if(order?.trailing?.status){
 
         } else if(order?.withoutLoss?.status){
-            const cross = order?.withoutLoss?.option?.isPriceType !== 'fixed' ? ((parseFloat(order?.currentPrice) * parseFloat(order?.withoutLoss?.option?.price))/100) : parseFloat(order?.withoutLoss?.option?.price)
-            const fee = ((parseFloat(order?.quantity)*parseFloat(order?.leverage))*parseFloat(order?.currentPrice)*(parseFloat(order?.withoutLoss?.option?.commission)*2))
-
-            if(order?.positionSide === 'SHORT'){
-
-                // orderId: '0',
-                //     userId: 'saf',
-                //     q: 10,
-                //     positionSide: 'LONG',
-                //     symbol: 'BTCUSDT',
-                //     fixPrice: 33400.0,
-                //     minDeviation: 33399.0,
-                //     maxDeviation: 33401.00,
-                //     fix: false,
-                //     fixDeviation: false
-
-                const withousLossShort = ((
-                            ((parseFloat(order?.quantity)*parseFloat(order?.leverage))*parseFloat(order?.currentPrice))
-                            -
-                            (parseFloat(cross)+parseFloat(fee))
-                        )
-                        *
-                        parseFloat(order?.currentPrice)
-                    )
-                    /
-                    ((parseFloat(order?.quantity)*parseFloat(order?.leverage))*parseFloat(order?.currentPrice))
-
-                ordersId = {...ordersId, ['withoutLoss']: {...order?.withoutLoss, fixed:false, fixedPrice:withousLossShort}}
-
-                console.log('withousLossShort',withousLossShort)
-
-            } else{
-
-                console.log('withousLossLong')
-                const withousLossLong = ((
-                            ((parseFloat(order?.quantity)*parseFloat(order?.leverage))*parseFloat(order?.currentPrice))
-                            +
-                            (parseFloat(cross)+parseFloat(fee))
-                        )
-                        *
-                        parseFloat(order?.currentPrice)
-                    )
-                    /
-                    ((parseFloat(order?.quantity)*parseFloat(order?.leverage))*parseFloat(order?.currentPrice))
-
-
-                console.log('withousLossLONG',withousLossLong)
-
-                ordersId = {...ordersId, ['withoutLoss']: {...order?.withoutLoss, fixed:false,fixedPrice:withousLossLong}}
-
-            }
+            withoutLoss(order, user)
         }
     }
 
+
+    function withoutLoss (){
+        const currentSize =  (parseFloat(order?.quantity)/parseFloat(order?.currentPrice))
+        const cross = order?.withoutLoss?.option?.isPriceType !== 'fixed' ? ((parseFloat(order?.currentPrice) * parseFloat(order?.withoutLoss?.option?.price))/100) : parseFloat(order?.withoutLoss?.option?.price)
+        const fee = ((parseFloat(currentSize)*parseFloat(order?.leverage))*parseFloat(order?.currentPrice)*(parseFloat(order?.withoutLoss?.option?.commission)*2))
+
+        if(order?.positionSide === 'SHORT'){
+
+            const withousLossShort = ((
+                        ((parseFloat(order?.quantity)*parseFloat(order?.leverage)))
+                        -
+                        (parseFloat(cross)+parseFloat(fee))
+                    )
+                    *
+                    parseFloat(order?.currentPrice)
+                )
+                /
+                ((parseFloat(order?.quantity)*parseFloat(order?.leverage)))
+
+            ordersId = {...ordersId, ['withoutLoss']: {...order?.withoutLoss, fixed:false, fixedPrice:withousLossShort}}
+
+            ordersId = {
+                ...ordersId, ['withoutLoss']: {
+                    userId: user?._id,
+                    q: order?.quantity,
+                    positionSide: order?.positionSide,
+                    symbol: order?.symbol,
+                    fix: false,
+                    fixDeviation:false,
+                    fixedPrice: (withousLossShort).toFixed(6),
+                    minDeviation: (parseFloat(withousLossShort) + (parseFloat(order?.withoutLoss?.option?.deviation) * parseFloat(order?.currentPrice) / 100)).toFixed(6),
+                    maxDeviation: (parseFloat(withousLossShort) - (parseFloat(order?.withoutLoss?.option?.deviation) * parseFloat(order?.currentPrice) / 100)).toFixed(6),
+                }
+            }
+
+        } else{
+
+            const withousLossLong = ((
+                        ((parseFloat(order?.quantity)*parseFloat(order?.leverage)))
+                        +
+                        (parseFloat(cross)+parseFloat(fee))
+                    )
+                    *
+                    parseFloat(order?.currentPrice)
+                )
+                /
+                ((parseFloat(order?.quantity)*parseFloat(order?.leverage)))
+
+            ordersId = {
+                ...ordersId, ['withoutLoss']: {
+                    userId: user?._id,
+                    q: order?.quantity,
+                    positionSide: order?.positionSide,
+                    symbol: order?.symbol,
+                    fix: false,
+                    fixDeviation:false,
+                    fixedPrice: withousLossLong.toFixed(6),
+                    minDeviation: (parseFloat(withousLossLong) - (parseFloat(order?.withoutLoss?.option?.deviation) * parseFloat(order?.currentPrice) / 100)).toFixed(6),
+                    maxDeviation: (parseFloat(withousLossLong) + (parseFloat(order?.withoutLoss?.option?.deviation) * parseFloat(order?.currentPrice) / 100)).toFixed(6),
+                }
+            }
+        }
+    }
 
     console.log(ordersId)
 

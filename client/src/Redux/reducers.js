@@ -74,6 +74,12 @@ const authenticationReducer = (state = initialState, action) => {
                 isTypePosition: action.payload,
             };
             break
+        case 'SET_FAVORITE':
+            return {
+                ...state,
+                favorite:action.payload,
+            }
+            break
         case 'FILTERED_CURRENCY':
             return {
                 ...state,

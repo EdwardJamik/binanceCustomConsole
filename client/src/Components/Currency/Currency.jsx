@@ -235,7 +235,7 @@ const Currency = () => {
 
             <div style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(3, 1fr)',
+                gridTemplateColumns: `repeat(${!isSaved ? '3' :'2'}, 1fr)`,
                 gridTemplateRows: '1fr',
                 gridColumnGap: '0px',
                 gridRowGap: '0px',
@@ -276,7 +276,8 @@ const Currency = () => {
 
             <div style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(3, 1fr)',
+                gridTemplateColumns: `repeat(${!isSaved ? '3' :'2'}, 1fr)`,
+
                 gridTemplateRows: '1fr',
                 gridColumnGap: '0px',
                 gridRowGap: '0px',
@@ -312,23 +313,34 @@ const Currency = () => {
                         {isSaved ?
 
                             <div style={{display:'flex', alignItems:'center'}}>
-                                <Cascader
-                                    options={favoriteOption}
-                                    placeholder={'Выберите избранные'}
-                                    multiple
-                                    maxTagCount="responsive"
-                                    style={{width: '200px'}}
+                                <Select
+                                    className='currency_selector'
+                                    showSearch
+                                    mode="tags"
+                                    style={{
+                                        width:'300px'
+                                    }}
+                                    // value={currencyList}
                                     dropdownStyle={{
                                         background: 'rgba(7, 7, 7, 0.6)',
                                         border: 'none',
                                         padding: '10px 8px 10px',
                                         textAlign: 'center',
+                                        width:'300px'
                                     }}
+                                    placeholder="Выберите избранные"
+                                    filterOption={(input, option) =>
+                                        option?.label.toLowerCase().includes(input.toLowerCase())
+                                    }
+                                    filterSort={(optionA, optionB) =>
+                                        (optionA?.label ?? '').toLowerCase().localeCompare((optionB?.label ?? '').toLowerCase())
+                                    }
+                                    // onChange={handleCurrencyChange}
+                                    options={favoriteOption}
                                 />
                                 <FavoriteModal/>
                             </div>
                             :
-
                             <Select
                                 className='currency_selector'
                                 showSearch
@@ -337,10 +349,9 @@ const Currency = () => {
                                     border: 'none',
                                     padding: '10px 8px 10px',
                                     textAlign: 'center',
-                                    width: '160px',
+                                    // width: '160px',
                                 }}
-                                placeholder="Search currency"
-                                optionFilterProp="children"
+                                placeholder="Валютные пары"
                                 filterOption={(input, option) =>
                                     option?.label.toLowerCase().includes(input.toLowerCase())
                                 }
@@ -352,36 +363,36 @@ const Currency = () => {
                                 options={isCurrency}
                                 defaultValue={symbol}
                             />
-
                         }
 
                     </ConfigProvider>
 
                 </div>
-                <div className="leverage">
-                    <span className='gold'>Кредитное плечо:</span>
-                    <ConfigProvider
-                        theme={{
-                            token: {
-                                colorTextSecondary: '#000',
-                                colorTextLabel: '#000',
-                                colorTextBase: '#fff',
-                                optionFontSize: '20px',
-                                colorPrimaryHover: 'none',
-                                optionSelectedFontWeight: '600',
-                                boxShadowSecondary: 'none',
+                {!isSaved ?
+                    <div className="leverage">
+                        <span className='gold'>Кредитное плечо:</span>
+                        <ConfigProvider
+                            theme={{
+                                token: {
+                                    colorTextSecondary: '#000',
+                                    colorTextLabel: '#000',
+                                    colorTextBase: '#fff',
+                                    optionFontSize: '20px',
+                                    colorPrimaryHover: 'none',
+                                    optionSelectedFontWeight: '600',
+                                    boxShadowSecondary: 'none',
 
-                                colorBgContainer: 'none',
-                                colorBorder: 'none',
+                                    colorBgContainer: 'none',
+                                    colorBorder: 'none',
 
-                                colorPrimaryBg: 'rgba(240, 216, 90, 0.4)',
-                                fontWeight: '600',
-                                colorFillTertiary: 'rgba(240, 216, 90, 0.4)',
-                                colorTextTertiary: '#000',
-                                colorTextQuaternary: 'rgba(240, 216, 90, 0.4)',
-                            },
-                        }}
-                    >
+                                    colorPrimaryBg: 'rgba(240, 216, 90, 0.4)',
+                                    fontWeight: '600',
+                                    colorFillTertiary: 'rgba(240, 216, 90, 0.4)',
+                                    colorTextTertiary: '#000',
+                                    colorTextQuaternary: 'rgba(240, 216, 90, 0.4)',
+                                },
+                            }}
+                        >
                             <InputNumber
                                 className='inputLeverage'
                                 min={1}
@@ -393,8 +404,11 @@ const Currency = () => {
                                 changeOnWheel
                                 style={{width: `100%`}}
                             />
-                    </ConfigProvider>
-                </div>
+                        </ConfigProvider>
+                    </div>
+                    :
+                    <></>
+                }
                 <div className="leverage">
                     <span style={{
                         right: '20%',
@@ -491,7 +505,6 @@ const Currency = () => {
                             },
                         }}
                     >
-
                             <Switch
                                 checkedChildren="TP"
                                 unCheckedChildren="TP"

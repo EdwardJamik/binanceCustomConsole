@@ -52,6 +52,7 @@ async function getAuthentificate(token, id) {
                     return {key: _id, ...rest};
                 });
 
+                let userFavorite = user?.favorite.map(pair => ({ label: `${pair?.name} (${pair?.list?.length})`, value: pair.id }));
 
                 const minPrice = await getMinimumBuyQuantity(user?.symbol, id, userApis?.key_1, userApis?.key_2)
                 const commission = await getCommisionRate(userApis?.key_1, userApis?.key_2, {symbol: user?.symbol}, user)
@@ -63,6 +64,7 @@ async function getAuthentificate(token, id) {
                         isAuthenticated: true,
                         positions: modifiedOrders,
                         commission: commission,
+                        favorite:userFavorite,
                         balance,
                         type_binance: user?.binance_test,
                         currentOption: {
@@ -79,6 +81,7 @@ async function getAuthentificate(token, id) {
                         isAuthenticated: true,
                         positions: modifiedOrders,
                         commission: commission,
+                        favorite:userFavorite,
                         balance,
                         type_binance: user?.binance_test,
                         currentOption: {
@@ -99,20 +102,23 @@ async function getAuthentificate(token, id) {
             } else {
                 socketServer.socketServer.io.to(id).emit('userData', {
                     currentOption: false,
-                    auth: true,
+                    auth: false,
+                    isAuthenticated:false,
                 });
 
                 socketServer.socketServer.io.to(id).emit('userMessage', {
                     type: 'error',
-                    message: `Не удалось подключиться к API`,
+                    message: `Не удалось идентифицировать пользователя или подключится к API`,
                 });
             }
 
         } else {
             socketServer.socketServer.io.to(id).emit('userData', {
                 currentOption: false,
-                auth: true,
+                auth: false,
+                isAuthenticated:false,
             });
+
             socketServer.socketServer.io.to(id).emit('userMessage', {
                 type: 'error',
                 message: `Не удалось идентифицировать пользователя`,

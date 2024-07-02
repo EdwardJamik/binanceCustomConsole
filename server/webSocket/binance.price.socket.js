@@ -430,6 +430,19 @@ function ch(symbol,price) {
 //     }
 // }
 
+function addwithoutLoss(settings){
+    if(withoutLoss.symbol){
+        withoutLoss = {
+            [withoutLoss?.symbol]:[
+                ...withoutLoss[withoutLoss?.symbol],
+                {...settings}
+            ],
+            ...withoutLoss
+        }
+    }
+
+}
+
 async function removeStreamPrice(id) {
     function removeValueFromArray(array, value) {
         const index = array.indexOf(value);

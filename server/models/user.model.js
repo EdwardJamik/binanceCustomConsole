@@ -30,8 +30,8 @@ const userSchema = new mongoose.Schema({
         default:'BTCUSDT'
     },
     favorite: {
-        type: Array,
-        default:[]
+        type: Object,
+        default:{}
     },
     currentOption: {
         type: Object,

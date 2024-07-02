@@ -128,7 +128,6 @@ class SocketIOServer {
                         axios.post(`https://${user?.binance_test ? TEST_BINANCE_API_DOMAIN : BINANCE_API_DOMAIN}/fapi/v1/leverage?symbol=${user?.symbol}&leverage=${data?.value}&timestamp=${timestamp}&signature=${signature}`, {},{headers}).then(async (response) => {
                             if (response.data.leverage) {
                                 const minPrice = await getMinimumBuyQuantity(user.symbol, socket.id, userApis?.key_1, userApis?.key_2)
-                                console.log(minPrice)
                                 if(user?.currentOption){
                                     userData = {
                                         currentOption: {
@@ -279,7 +278,7 @@ class SocketIOServer {
 
             socket.on('disconnect', async () => {
                     console.log(`[${new Date().toLocaleTimeString('uk-UA')}] CLIENT '${socket?.id}' DISCONNECT IO SESSION`);
-                    removeStreamPrice(socket.id)
+                    // removeStreamPrice(socket.id)
                     await User.updateOne({token: socket.id}, {token: null})
                 }
             );
