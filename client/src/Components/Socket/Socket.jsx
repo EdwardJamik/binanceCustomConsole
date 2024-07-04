@@ -65,6 +65,10 @@ export const SocketProvider = ({ children }) => {
                 dispatch({type: 'CURRENT_POSITION', payload: data.positionList});
             });
 
+            mainSocket.on("updateOnePosition", (data) => {
+                dispatch({type: 'ONE_POSITION', payload: data.positionList});
+            });
+
             mainSocket.on("updateMinPrice", (data) => {
                 dispatch({type: 'FILTERED_CURRENCY_PRICE', payload: data});
             });

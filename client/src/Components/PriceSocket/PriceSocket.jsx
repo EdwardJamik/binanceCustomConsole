@@ -19,6 +19,9 @@ export const SocketPrice = ({ children }) => {
 
     useEffect(() => {
 
+        if(Array.isArray(symbol))
+            return;
+
         if (!symbol || type_binance === null) {
             setPriceUpdates({ price: 0, position: true, symbol: symbol });
             return;
@@ -29,7 +32,6 @@ export const SocketPrice = ({ children }) => {
 
         const connectWebSocket = () => {
             try {
-                console.log(wsUrl)
                 const ws = new WebSocket(wsUrl);
                 wsRef.current = ws;
 

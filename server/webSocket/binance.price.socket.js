@@ -11,69 +11,70 @@ let user = {}
 
 let withoutLoss =
     {
-        BTCUSDT:
-            [{
-                orderId: '0',
-                userId: 'saf',
-                q: 10,
-                positionSide: 'LONG',
-                symbol: 'BTCUSDT',
-                fixPrice: 33400.0,
-                minDeviation: 33399.0,
-                maxDeviation: 33401.00,
-                fix: false,
-                fixDeviation: false
-            },{
-                orderId: '1',
-                userId: 'saf',
-                q: 0,
-                positionSide: 'SHORT',
-                symbol: 'BTCUSDT',
-                fixPrice: 33400.0,
-                minDeviation: 33403.0,
-                maxDeviation: 33397.00,
-                fix: false,
-                fixDeviation: false
-            }]
+        // BTCUSDT:
+        //     [{
+        //         orderId: '0',
+        //         userId: 'saf',
+        //         q: 10,
+        //         positionSide: 'LONG',
+        //         symbol: 'BTCUSDT',
+        //         fixPrice: 33400.0,
+        //         minDeviation: 33399.0,
+        //         maxDeviation: 33401.00,
+        //         fix: false,
+        //         fixDeviation: false
+        //     },{
+        //         orderId: '1',
+        //         userId: 'saf',
+        //         q: 0,
+        //         positionSide: 'SHORT',
+        //         symbol: 'BTCUSDT',
+        //         fixPrice: 33400.0,
+        //         minDeviation: 33403.0,
+        //         maxDeviation: 33397.00,
+        //         fix: false,
+        //         fixDeviation: false
+        //     }]
     }
 
 let trailingCh =
     {
-        BTCUSDT:
-            [{
-                orderId: '1',
-                userId: 'saf',
-                q: 0,
-                positionSide: 'LONG',
-                symbol: 'BTCUSDT',
-                price: 33400,
-                deviation:33399,
-                index:0,
-                indexD:0,
-                arrayPrice: [33400,33402,33404,33406,33408],
-                arrayDeviation: [33399,33401,33403,33405,33407],
-                lastPrice:0.5,
-                lastDeviation:0.5,
-                isPrecentPrice:true,
-                isPrecentDeviation:true
-            },{
-                orderId: '1',
-                userId: 'saf',
-                q: 0,
-                positionSide: 'SHORT',
-                symbol: 'BTCUSDT',
-                price: 33400,
-                deviation: 33401,
-                index: 0,
-                indexD:0,
-                arrayPrice: [33400,33398,33396,33394,33392],
-                arrayDeviation: [33401,33399,33397,33395,33393],
-                lastPrice:0.5,
-                lastDeviation:0.5,
-                isPrecentPrice:true,
-                isPrecentDeviation:true
-            }]
+        // BTCUSDT:
+        //     [{
+        //         orderId: '1',
+        //         userId: 'saf',
+        //         q: 0,
+        //         positionSide: 'LONG',
+        //         symbol: 'BTCUSDT',
+        //         price: 33400,
+        //         deviation:33399,
+        //         index:0,
+        //         indexD:0,
+        //         arrayPrice: [33400,33402,33404,33406,33408],
+        //         arrayDeviation: [33399,33401,33403,33405,33407],
+        //         lastPrice:0.5,
+        //         lastDeviation:0.5,
+        //         isPrecentPrice:true,
+        //         isPrecentDeviation:true
+        //     },{
+        //         orderId: '1',
+        //         userId: 'saf',
+        //         q: 0,
+        //         positionSide: 'SHORT',
+        //         symbol: 'BTCUSDT',
+        //         price: 33400,
+        //         deviation: 33401,
+        //         index: 0,
+        //         indexD:0,
+        //         arrayPrice: [33400,33398,33396,33394,33392],
+        //         arrayDeviation: [33401,33399,33397,33395,33393],
+        //         lastPrice:0.5,
+        //         lastDeviation:0.5,
+        //         isPrecentPrice:true,
+        //         isPrecentDeviation:true
+        //     }]
     }
+
 async function streamPrice(symbol,id,type_binance) {
     try{
         console.log("ADD PRICE STREAM")
@@ -431,7 +432,7 @@ function ch(symbol,price) {
 // }
 
 function addwithoutLoss(settings){
-    if(withoutLoss.symbol){
+    if(settings){
         withoutLoss = {
             [withoutLoss?.symbol]:[
                 ...withoutLoss[withoutLoss?.symbol],
@@ -440,7 +441,6 @@ function addwithoutLoss(settings){
             ...withoutLoss
         }
     }
-
 }
 
 async function removeStreamPrice(id) {
@@ -464,5 +464,4 @@ async function removeStreamPrice(id) {
     }
 }
 
-exports.streamPrice = streamPrice
-exports.removeStreamPrice = removeStreamPrice
+module.exports = {streamPrice,removeStreamPrice,addwithoutLoss}

@@ -153,6 +153,15 @@ const authenticationReducer = (state = initialState, action) => {
                 ]
             }
             break
+        case 'ONE_POSITION':
+            return {
+                ...state,
+                positions: [
+                    ...action.payload,
+                    ...state?.positions
+                ]
+            }
+            break
         case 'SET_TYPE_BINANCE':
             return {
                 ...state,

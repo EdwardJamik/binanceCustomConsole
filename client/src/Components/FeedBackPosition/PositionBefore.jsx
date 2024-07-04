@@ -119,7 +119,7 @@ const PositionBefore = () => {
 
                 const startPrice = parseFloat(record?.startPrice);
                 const closePrice = record?.ClosePositionData?.ap ? parseFloat(record?.ClosePositionData?.ap) : parseFloat(record?.ClosePositionData?.avgPrice);
-                const quantity = record?.ClosePositionData?.q ? parseFloat(record?.ClosePositionData?.q) : parseFloat(record?.positionData?.origQty);
+                // const quantity = record?.ClosePositionData?.q ? parseFloat(record?.ClosePositionData?.q) : parseFloat(record?.positionData?.origQty);
                 const cumQuantity = parseFloat(record?.positionData?.cumQuote) || 0
                 const cumQuantityClose = record?.ClosePositionData?.cumQuote ? parseFloat(record?.ClosePositionData?.cumQuote) : parseFloat(record?.ClosePositionData?.q) * parseFloat(record?.ClosePositionData?.ap);
 
@@ -130,7 +130,7 @@ const PositionBefore = () => {
 
                 if(record?.openedConfig?.positionSide === 'SHORT'){
                     percent = priceDecimal((((startPrice - closePrice) / startPrice) * 100 * parseFloat(record?.leverage) - (openCommission+closeCommission)),3);
-                    profit = cumQuantity - cumQuantityClose
+                    profit = cumQuantityClose - cumQuantity
                 } else {
                     percent = priceDecimal((((closePrice - startPrice) / startPrice) * 100 * parseFloat(record?.leverage) - (openCommission+closeCommission)),3);
                     profit = cumQuantityClose - cumQuantity

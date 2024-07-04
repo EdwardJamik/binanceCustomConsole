@@ -1,8 +1,6 @@
 import React from 'react';
 import './home.css'
 import {useLocation} from "react-router-dom";
-import CreateLong from "../../Components/Position/createLong.jsx";
-import CreateShort from "../../Components/Position/createShort.jsx";
 import Currency from "../../Components/Currency/Currency.jsx";
 import DateTime from "../../Components/Date/DateTime.jsx";
 import {ConfigProvider, Tabs} from "antd";

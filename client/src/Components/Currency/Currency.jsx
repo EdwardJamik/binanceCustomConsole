@@ -109,7 +109,8 @@ const Currency = () => {
 
     const handleCurrencyChange = (value) => {
         dispatch({type: 'FILTERED_CURRENCY', payload: value})
-        socket.emit('changeCurrency', value);
+        if(!Array.isArray(value))
+            socket.emit('changeCurrency', value);
     };
 
     const changeOrders = (checked, type) => {
@@ -215,7 +216,7 @@ const Currency = () => {
                             bottom: '-10px',
                             color: '#fff'
                         }}>
-                    {symbol}
+                    {Array.isArray(symbol) ?  'Избранные' : symbol}
                     </span>
                     </>
                     :
@@ -335,7 +336,7 @@ const Currency = () => {
                                     filterSort={(optionA, optionB) =>
                                         (optionA?.label ?? '').toLowerCase().localeCompare((optionB?.label ?? '').toLowerCase())
                                     }
-                                    // onChange={handleCurrencyChange}
+                                    onChange={handleCurrencyChange}
                                     options={favoriteOption}
                                 />
                                 <FavoriteModal/>

@@ -21,7 +21,7 @@ const CreatePosition = () => {
 
     const openPosition = () => {
         let data = {
-            symbol: user.currency,
+            symbol: symbol,
             side: positionSide ? 'BUY' : 'SELL',
             positionSide: positionSide ? 'LONG' : 'SHORT',
             quantity: `${parseFloat(user.amount)}`,
