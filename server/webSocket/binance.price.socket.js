@@ -75,7 +75,7 @@ let trailingCh =
         //     }]
     }
 
-async function streamPrice(symbol,id,type_binance) {
+function streamPrice(symbol,id,type_binance) {
     try{
         console.log("ADD PRICE STREAM")
         for(const curr of symbol)
@@ -432,10 +432,11 @@ function ch(symbol,price) {
 // }
 
 function addwithoutLoss(settings){
-    if(settings){
+    if(withoutLoss[settings?.symbol]){
+        withoutLoss[settings?.symbol].push({...settings})
+    } else {
         withoutLoss = {
-            [withoutLoss?.symbol]:[
-                ...withoutLoss[withoutLoss?.symbol],
+            [settings?.symbol]:[
                 {...settings}
             ],
             ...withoutLoss
@@ -464,4 +465,6 @@ async function removeStreamPrice(id) {
     }
 }
 
-module.exports = {streamPrice,removeStreamPrice,addwithoutLoss}
+exports.streamPrice = streamPrice
+exports.removeStreamPrice = removeStreamPrice
+exports.addwithoutLoss = addwithoutLoss

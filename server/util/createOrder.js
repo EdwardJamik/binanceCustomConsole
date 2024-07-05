@@ -3,7 +3,9 @@ const {getSignature, getHeaders} = require("./signature");
 const axios = require("axios");
 const Order = require("../models/orders.model");
 const User = require("../models/user.model");
-const {streamPrice, setStremPriceSocket} = require("../webSocket/binance.price.socket");
+const streamPrice = require('../webSocket/binance.price.socket')
+const addwithoutLoss = require('../webSocket/binance.price.socket')
+// const {setStremPriceSocket, addwithoutLoss} = require("../webSocket/binance.price.socket");
 const createSocket = require("../webSocket/binance.macd.socket");
 const {cancelOrder} = require("./cancelOrder");
 const {createEventsSocket} = require("../webSocket/binance.event.socket");
@@ -16,6 +18,7 @@ const {getMultipleOrderDetails} = require('./getMultipleOrderDetails')
 const {createTakeProfit} = require("./takeProfit");
 const {roundDecimal} = require("./roundToFirstSign");
 const {getWithoutLoss} = require("./getWithoutLoss");
+const {getTrailingCH} = require("./getTrailingCH");
 
 async function createOrder(orderElement, userData, id) {
     try {
@@ -129,15 +132,18 @@ async function createOrder(orderElement, userData, id) {
 
                     getMultipleOrderDetails(responseBatch?.data, key_1, key_2, user?.binance_test).then(async (response) => {
 
+                        console.log(responseBatch?.data)
                         let ordersSystem = []
-                        if (order?.trailing?.status || order?.withoutLoss?.status || order?.macd?.status) {
-                            ordersSystem = createOrders(order, response, user)
-                        }
 
                         let i = 0
                         for (const position of response) {
 
                             if(position?.type !== 'TAKE_PROFIT_MARKET'){
+
+                                if (order?.trailing?.status || order?.withoutLoss?.status || order?.macd?.status) {
+                                    ordersSystem = createOrders(order, position, user)
+                                }
+
                                 const newPosition = await Order.create({
                                     positionsId: position?.orderId,
                                     startPrice: position?.avgPrice,
@@ -146,7 +152,7 @@ async function createOrder(orderElement, userData, id) {
                                     ordersId: {
                                         TRAILING_STOP_MARKET: ordersSystem?.trailing,
                                         TAKE_PROFIT_MARKET,
-                                        macd: ordersSystem?.ordersId?.macd,
+                                        macd: ordersSystem?.macd,
                                         withoutLoss: ordersSystem?.withoutLoss
                                     },
                                     positionData: position,
@@ -158,6 +164,9 @@ async function createOrder(orderElement, userData, id) {
                                     currency: position?.symbol,
                                     opened: true
                                 });
+
+                                streamPrice.streamPrice([position?.symbol], String(user?._id), user?.binance_test)
+                                addwithoutLoss.addwithoutLoss(ordersSystem?.withoutLoss)
 
                                 socketServer.socketServer.io.to(id).emit('updateOnePosition', {
                                     positionList: [{key: String(newPosition?._id), ...newPosition?._doc}],
@@ -177,7 +186,6 @@ async function createOrder(orderElement, userData, id) {
                             balance
                         });
 
-                        streamPrice(currencySkeleton, user?.token, user?.binance_test)
 
                     }).catch((e) => {
                         console.log(e)
@@ -339,8 +347,8 @@ async function createOrder(orderElement, userData, id) {
 function createOrders(order,querySkeleton,user){
     let queryElements = [], ordersId = {}
 
-    console.log(order,querySkeleton)
-    for(const position of querySkeleton) {
+    // for(const position of querySkeleton) {
+
         if (order?.macd?.status && !order?.withoutLoss?.status) {
             ordersId.macd = {...order?.macd}
             createSocket.createSocket({
@@ -359,16 +367,16 @@ function createOrders(order,querySkeleton,user){
 
         } else {
             if(order?.trailing?.status){
-
+                ordersId = getTrailingCH(order, user, querySkeleton)
             } else if(order?.withoutLoss?.status){
-                ordersId = getWithoutLoss(order, user, position)
+                ordersId = getWithoutLoss(order, user, querySkeleton)
             }
         }
-    }
+    // }
 
 
 
-    console.log(ordersId)
+    // console.log('ordersId->>>>>>>>>>>>',ordersId)
 
     // if (order?.trailing?.status || order?.withoutLoss?.status) {
     //

@@ -8,10 +8,6 @@ function getWithoutLoss (order, user, querySkeleton, prevOrder){
         ordersId = {};
     }
 
-    if (!ordersId['withoutLoss']) {
-        ordersId['withoutLoss'] = [];
-    }
-
     if(order?.positionSide === 'SHORT'){
 
         const withousLossShort = ((
@@ -25,12 +21,9 @@ function getWithoutLoss (order, user, querySkeleton, prevOrder){
             /
             (parseFloat(querySkeleton?.cumQuote))
 
-        // ordersId = {...ordersId, ['withoutLoss']: {...order?.withoutLoss, orderId, fixed:false, fixedPrice:withousLossShort}}
-
         return ordersId = {
             ...ordersId,
-            ...ordersId, withoutLoss: [
-                ...ordersId['withoutLoss'],
+            ...ordersId, withoutLoss:
                 {
                 orderId: querySkeleton?.orderId,
                 userId: String(user?._id),
@@ -42,7 +35,7 @@ function getWithoutLoss (order, user, querySkeleton, prevOrder){
                 fixedPrice: (withousLossShort).toFixed(6),
                 minDeviation: (parseFloat(withousLossShort) + (parseFloat(order?.withoutLoss?.option?.deviation) * parseFloat(querySkeleton?.avgPrice) / 100)).toFixed(6),
                 maxDeviation: (parseFloat(withousLossShort) - (parseFloat(order?.withoutLoss?.option?.deviation) * parseFloat(querySkeleton?.avgPrice) / 100)).toFixed(6),
-            }]
+            }
         }
 
     } else{
@@ -59,8 +52,7 @@ function getWithoutLoss (order, user, querySkeleton, prevOrder){
             (parseFloat(querySkeleton?.cumQuote))
 
         return ordersId = {
-            ...ordersId, withoutLoss: [
-                ...ordersId['withoutLoss'],
+            ...ordersId, withoutLoss:
                 {
                 orderId: querySkeleton?.orderId,
                 userId: String(user?._id),
@@ -72,7 +64,7 @@ function getWithoutLoss (order, user, querySkeleton, prevOrder){
                 fixedPrice: withousLossLong.toFixed(6),
                 minDeviation: (parseFloat(withousLossLong) - (parseFloat(order?.withoutLoss?.option?.deviation) * parseFloat(querySkeleton?.avgPrice) / 100)).toFixed(6),
                 maxDeviation: (parseFloat(withousLossLong) + (parseFloat(order?.withoutLoss?.option?.deviation) * parseFloat(querySkeleton?.avgPrice) / 100)).toFixed(6),
-            }]
+            }
         }
     }
 }
