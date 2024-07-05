@@ -15,11 +15,14 @@ const {getMultiplePrices} = require('./getMultiplePrices')
 const {getMultipleOrderDetails} = require('./getMultipleOrderDetails')
 const {createTakeProfit} = require("./takeProfit");
 const {roundDecimal} = require("./roundToFirstSign");
+const {getWithoutLoss} = require("./getWithoutLoss");
 
 async function createOrder(orderElement, userData, id) {
     try {
         const {order} = orderElement;
         let currencySkeleton = [], multiplePrice = [],TAKE_PROFIT_MARKET
+
+        console.log(order)
 
         let user
         let userId = id
@@ -124,12 +127,12 @@ async function createOrder(orderElement, userData, id) {
                     const TAKE_PROFIT_MARKET = responseBatch?.data?.find(order => order.type === 'TAKE_PROFIT_MARKET');
                     // const TRAILING_STOP_MARKET = responseBatch?.data?.find(order => order.type === 'TRAILING_STOP_MARKET');
 
-                    let ordersSystem = []
-                    if (order?.trailing?.status || order?.withoutLoss?.status || order?.macd?.status) {
-                        ordersSystem = createOrders(order, querySkeleton, user, responseBatch?.data[0].orderId)
-                    }
-
                     getMultipleOrderDetails(responseBatch?.data, key_1, key_2, user?.binance_test).then(async (response) => {
+
+                        let ordersSystem = []
+                        if (order?.trailing?.status || order?.withoutLoss?.status || order?.macd?.status) {
+                            ordersSystem = createOrders(order, response, user)
+                        }
 
                         let i = 0
                         for (const position of response) {
@@ -333,98 +336,37 @@ async function createOrder(orderElement, userData, id) {
     }
 }
 
-function createOrders(order,querySkeleton, user, orderId){
+function createOrders(order,querySkeleton,user){
     let queryElements = [], ordersId = {}
 
-    if (order?.macd?.status && !order?.withoutLoss?.status) {
-        ordersId.macd = {...order?.macd}
-        createSocket.createSocket({
-            id: user?.token,
-            symbol: order?.symbol,
-            interval: `${order?.macd?.timeFrame}`,
-            number: `${order?.macd?.number}`,
-            type: order?.macd?.type,
-            type_g: order?.macd?.type_g,
-            test: user?.binance_test,
-            user
-        })
-    }
-
-    if (order?.trailing?.status && order?.withoutLoss?.status) {
-
-    } else {
-        if(order?.trailing?.status){
-
-        } else if(order?.withoutLoss?.status){
-            withoutLoss(order, user, orderId)
+    console.log(order,querySkeleton)
+    for(const position of querySkeleton) {
+        if (order?.macd?.status && !order?.withoutLoss?.status) {
+            ordersId.macd = {...order?.macd}
+            createSocket.createSocket({
+                id: user?.token,
+                symbol: order?.symbol,
+                interval: `${order?.macd?.timeFrame}`,
+                number: `${order?.macd?.number}`,
+                type: order?.macd?.type,
+                type_g: order?.macd?.type_g,
+                test: user?.binance_test,
+                user
+            })
         }
-    }
 
+        if (order?.trailing?.status && order?.withoutLoss?.status) {
 
-    function withoutLoss (order, user, orderId){
-        const currentSize =  (parseFloat(order?.quantity)/parseFloat(order?.currentPrice))
-        const cross = order?.withoutLoss?.option?.isPriceType !== 'fixed' ? ((parseFloat(order?.currentPrice) * parseFloat(order?.withoutLoss?.option?.price))/100) : parseFloat(order?.withoutLoss?.option?.price)
-        const fee = ((parseFloat(currentSize)*parseFloat(order?.leverage))*parseFloat(order?.currentPrice)*(parseFloat(order?.withoutLoss?.option?.commission)*2))
+        } else {
+            if(order?.trailing?.status){
 
-        if(order?.positionSide === 'SHORT'){
-
-            const withousLossShort = ((
-                        ((parseFloat(order?.quantity)*parseFloat(order?.leverage)))
-                        -
-                        (parseFloat(cross)+parseFloat(fee))
-                    )
-                    *
-                    parseFloat(order?.currentPrice)
-                )
-                /
-                ((parseFloat(order?.quantity)*parseFloat(order?.leverage)))
-
-            // ordersId = {...ordersId, ['withoutLoss']: {...order?.withoutLoss, orderId, fixed:false, fixedPrice:withousLossShort}}
-
-            ordersId = {
-                ...ordersId, ['withoutLoss']: {
-                    orderId,
-                    userId: user?._id,
-                    q: order?.quantity,
-                    positionSide: order?.positionSide,
-                    symbol: order?.symbol,
-                    fix: false,
-                    fixDeviation:false,
-                    fixedPrice: (withousLossShort).toFixed(6),
-                    minDeviation: (parseFloat(withousLossShort) + (parseFloat(order?.withoutLoss?.option?.deviation) * parseFloat(order?.currentPrice) / 100)).toFixed(6),
-                    maxDeviation: (parseFloat(withousLossShort) - (parseFloat(order?.withoutLoss?.option?.deviation) * parseFloat(order?.currentPrice) / 100)).toFixed(6),
-                }
-            }
-
-        } else{
-
-            const withousLossLong = ((
-                        ((parseFloat(order?.quantity)*parseFloat(order?.leverage)))
-                        +
-                        (parseFloat(cross)+parseFloat(fee))
-                    )
-                    *
-                    parseFloat(order?.currentPrice)
-                )
-                /
-                ((parseFloat(order?.quantity)*parseFloat(order?.leverage)))
-
-            ordersId = {
-                ...ordersId, ['withoutLoss']: {
-                    orderId,
-                    userId: user?._id,
-                    q: order?.quantity,
-                    positionSide: order?.positionSide,
-                    symbol: order?.symbol,
-                    fix: false,
-                    fixDeviation:false,
-                    fixedPrice: withousLossLong.toFixed(6),
-                    minDeviation: (parseFloat(withousLossLong) - (parseFloat(order?.withoutLoss?.option?.deviation) * parseFloat(order?.currentPrice) / 100)).toFixed(6),
-                    maxDeviation: (parseFloat(withousLossLong) + (parseFloat(order?.withoutLoss?.option?.deviation) * parseFloat(order?.currentPrice) / 100)).toFixed(6),
-                }
+            } else if(order?.withoutLoss?.status){
+                ordersId = getWithoutLoss(order, user, position)
             }
         }
     }
+
+
 
     console.log(ordersId)
 
