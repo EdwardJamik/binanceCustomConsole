@@ -1,91 +1,70 @@
-import React, {useState} from 'react';
+import React from 'react';
 import {Button, ConfigProvider, InputNumber, Select} from "antd";
 import {useDispatch, useSelector} from "react-redux";
-import {usePrice} from "../PriceSocket/PriceSocket.jsx";
+import {useSocket} from "../Socket/Socket.jsx";
 
 
 const TrailingCh = () => {
 
     const dispatch = useDispatch();
-
-    const [isTrailingData, setTrailingData] = useState([
-            {
-                price: 0,
-                deviation: 0,
-                isDeviationType: 'percent',
-                isPriceType: 'fixed'
-            }
-        ]
-    )
+    const userOption = useSelector(state => state.currentOption)
+    const socket = useSocket()
 
     const handleAmountChange = (value, index, type) => {
         if (value >= 0) {
-            let trailingData = [...isTrailingData]
+            let trailingData = [...userOption?.trailing?.option]
 
-            if(type === 'deviation' && isTrailingData[index]?.isDeviationType === 'fixed')
-                trailingData[index][type] = parseFloat(value) <= parseFloat(isTrailingData[index]?.price) ? value : parseFloat(isTrailingData[index]?.price)
+            if(type === 'deviation' && userOption?.trailing?.option[index]?.isDeviationType === 'fixed')
+                trailingData[index][type] = parseFloat(value) <= parseFloat(userOption?.trailing?.option[index]?.price) ? value : parseFloat(userOption?.trailing?.option[index]?.price)
             else
                 trailingData[index][type] = value
 
-            setTrailingData(trailingData)
-
             const userData = [...trailingData]
+
+            socket.emit('setUserData', {value:  {...userOption, trailing: {status:userOption?.trailing?.status, option:[...trailingData]}}});
             dispatch({type: 'SET_TRAILING_DATA', payload: userData});
         }
     };
 
-    function trimToFirstInteger(num) {
-        let strNum = num.toString();
-        let dotIndex = strNum.indexOf('.');
-        if (dotIndex === -1 || dotIndex === strNum.length - 1) {
-            return num;
-        } else {
-            let nextDigitIndex = dotIndex + 1;
-            while (nextDigitIndex < strNum.length && strNum[nextDigitIndex] === '0') {
-                nextDigitIndex++;
-            }
-            return parseFloat(strNum.slice(0, nextDigitIndex + 2));
-        }
-    }
-
     const handleTypeChange = (value, index, type) => {
-        let trailingData = [...isTrailingData]
+        let trailingData = [...userOption?.trailing?.option]
 
         trailingData[index][type] = value
-        setTrailingData(trailingData)
-
 
         const userData = [...trailingData]
+        socket.emit('setUserData', {value:  {...userOption, trailing: {status:userOption?.trailing?.status,option:[...trailingData]}}});
         dispatch({type: 'SET_TRAILING_DATA', payload: userData});
     };
 
     const addTrailingData = () => {
-        let trailingData = [...isTrailingData,{
+        let trailingData = [...userOption?.trailing?.option,{
             price: 0,
             deviation: 0,
             isDeviationType: 'percent',
             isPriceType: 'fixed'
         }]
 
-        setTrailingData(trailingData)
+        // setTrailingData(trailingData)
         const userData = [...trailingData]
+        socket.emit('setUserData', {value: {...userOption, trailing: {status:userOption?.trailing?.status,option:[...trailingData]}}});
         dispatch({type: 'SET_TRAILING_DATA', payload: userData});
     };
 
     const removeTrailingData = (index) => {
-        let trailingData = [...isTrailingData]
+        let trailingData = [...userOption?.trailing?.option]
 
         trailingData?.splice(index,1)
 
-        setTrailingData(trailingData)
+        // setTrailingData(trailingData)
         const userData = [...trailingData]
+        socket.emit('setUserData', {value: {...userOption, trailing: {status:userOption?.trailing?.status,option:[...trailingData]}}});
         dispatch({type: 'SET_TRAILING_DATA', payload: userData});
     };
 
     const selectAfter = (type, index) => {
         return (
             <Select
-                value={isTrailingData[index][type === 'price' ? 'isPriceType' : 'isDeviationType'] === 'fixed' ? 'fixed' : 'percent'}
+                value={userOption?.trailing?.option[index][type === 'price' ? 'isPriceType' : 'isDeviationType'] === 'fixed' ? 'fixed' : 'percent'}
                 style={{
                     width: 50,
                 }}
@@ -115,8 +94,8 @@ const TrailingCh = () => {
                 }}
             >
                 <div style={{maxWidth: '260px'}}>
-                    {isTrailingData ?
-                        isTrailingData?.map((item, index) =>
+                    {userOption?.trailing?.option ?
+                        userOption?.trailing?.option?.map((item, index) =>
                                 <div key={index} style={{position:'relative'}}>
                                     {index !== 0 ?
                                         <Button
@@ -199,7 +178,7 @@ const TrailingCh = () => {
                                        {/*     }*/}
                                        {/*</span>*/}
                                     </div>
-                                    {isTrailingData?.length - 1 === index ?
+                                    {userOption?.trailing?.option?.length - 1 === index ?
                                     <Button type={'primary'}
                                             key={`button_add_${index}`}
                                             ghost

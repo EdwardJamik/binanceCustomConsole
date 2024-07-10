@@ -20,6 +20,7 @@ const initialState = {
     currentOption: {
         minCurrencyPrice: 100,
         amount: "0",
+        positionSide: "LONG",
         adjustLeverage:"2",
         maxAdjustLeverage:"100",
         currencyPrice: 0,
@@ -28,10 +29,15 @@ const initialState = {
             price:0,
             procent:false
         },
-        trailing:{
+        trailing: {
             status:false,
-            price:0,
-            procent:false
+            option:
+            [{
+                price: 0,
+                deviation: 0,
+                isDeviationType: 'percent',
+                isPriceType: 'fixed'
+            }]
         },
         macd:{
             status:false,
@@ -42,8 +48,14 @@ const initialState = {
         },
         withoutLoss:{
             status:false,
-            price:0,
-            procent:false
+            option:[
+                {
+                    price: 0,
+                    deviation: 0,
+                    isDeviationType: 'percent',
+                    isPriceType: 'fixed'
+                }
+            ]
         }
     }
 };

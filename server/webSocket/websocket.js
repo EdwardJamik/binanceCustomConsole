@@ -37,6 +37,8 @@ class SocketIOServer {
         this.server = http.createServer(this.app);
         this.io = new Server(this.server,{
             cors: {origin:true, methods: ["GET", "POST"]},
+            pingTimeout: 60000,
+            pingInterval: 25000
         });
 
         this.values = [];
@@ -94,6 +96,7 @@ class SocketIOServer {
                         await User.updateOne({token: socket.id}, {
                             currentOption: {
                                 ...user.currentOption,
+                                ...value
                             }
                         })
                     }

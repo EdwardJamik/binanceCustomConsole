@@ -1,78 +1,124 @@
-function getTrailingCH (order, user, querySkeleton, prevOrder){
-    let ordersId = prevOrder
-    const currentSize =  parseFloat(querySkeleton?.executedQty)
-    const cross = order?.withoutLoss?.option?.isPriceType !== 'fixed' ? ((parseFloat(querySkeleton?.avgPrice) * parseFloat(order?.withoutLoss?.option?.price))/100) : parseFloat(order?.withoutLoss?.option?.price)
-    const fee = ((parseFloat(currentSize)*parseFloat(order?.leverage))*parseFloat(querySkeleton?.avgPrice)*(parseFloat(order?.withoutLoss?.option?.commission)*2))
+function getTrailingCH (order, user, querySkeleton, prevOrder) {
+    try {
+        console.log('CH->>>>', order, querySkeleton, prevOrder)
 
-    if (!ordersId) {
-        ordersId = {};
-    }
-
-    if (!ordersId['withoutLoss']) {
-        ordersId['withoutLoss'] = [];
-    }
-
-    if(order?.positionSide === 'SHORT'){
-
-        const withousLossShort = ((
-                    (parseFloat(querySkeleton?.cumQuote))
-                    -
-                    (parseFloat(cross)+parseFloat(fee))
-                )
-                *
-                parseFloat(querySkeleton?.avgPrice)
-            )
-            /
-            (parseFloat(querySkeleton?.cumQuote))
-
-        return ordersId = {
-            ...ordersId,
-            ...ordersId, withoutLoss: [
-                ...ordersId['withoutLoss'],
-                {
-                    orderId: querySkeleton?.orderId,
-                    userId: String(user?._id),
-                    q: querySkeleton?.executedQty,
-                    positionSide: querySkeleton?.positionSide,
-                    symbol: querySkeleton?.symbol,
-                    fix: false,
-                    fixDeviation:false,
-                    fixedPrice: (withousLossShort).toFixed(6),
-                    minDeviation: (parseFloat(withousLossShort) + (parseFloat(order?.withoutLoss?.option?.deviation) * parseFloat(querySkeleton?.avgPrice) / 100)).toFixed(6),
-                    maxDeviation: (parseFloat(withousLossShort) - (parseFloat(order?.withoutLoss?.option?.deviation) * parseFloat(querySkeleton?.avgPrice) / 100)).toFixed(6),
-                }]
+        let skeletonTrailing = {
+            orderId: querySkeleton?.orderId,
+            userId: String(user?._id),
+            q: querySkeleton?.executedQty,
+            positionSide: querySkeleton?.positionSide,
+            symbol: querySkeleton?.symbol,
+            price: parseFloat(querySkeleton?.avgPrice),
+            deviation: order?.positionSide === 'SHORT' ? parseFloat(querySkeleton?.avgPrice) + (parseFloat(querySkeleton?.avgPrice) * parseFloat(order?.trailing?.option[0]?.deviation) / 100) : parseFloat(querySkeleton?.avgPrice) - (parseFloat(querySkeleton?.avgPrice) * parseFloat(order?.trailing?.option[0]?.deviation) / 100),
+            index: 0,
+            indexD: 0,
+            arrayPrice: [],
+            arrayDeviation: [],
+            lastPrice: parseFloat(order?.trailing?.option[order?.trailing?.option?.length - 1]?.price),
+            lastDeviation: parseFloat(order?.trailing?.option[order?.trailing?.option?.length - 1]?.deviation),
+            isPriceType: order?.trailing?.option[order?.trailing?.option?.length - 1]?.isPriceType !== 'fixed',
+            isDeviationType: true
         }
 
-    } else{
+        let i = 0
+        for(const orderItem of order?.trailing?.option){
 
-        const withousLossLong = ((
-                    (parseFloat(querySkeleton?.cumQuote))
-                    +
-                    (parseFloat(cross)+parseFloat(fee))
-                )
-                *
-                parseFloat(querySkeleton?.avgPrice)
-            )
-            /
-            (parseFloat(querySkeleton?.cumQuote))
+            if (order?.positionSide === 'SHORT') {
 
-        return ordersId = {
-            ...ordersId, withoutLoss: [
-                ...ordersId['withoutLoss'],
-                {
-                    orderId: querySkeleton?.orderId,
-                    userId: String(user?._id),
-                    q: querySkeleton?.executedQty,
-                    positionSide: querySkeleton?.positionSide,
-                    symbol: querySkeleton?.symbol,
-                    fix: false,
-                    fixDeviation:false,
-                    fixedPrice: withousLossLong.toFixed(6),
-                    minDeviation: (parseFloat(withousLossLong) - (parseFloat(order?.withoutLoss?.option?.deviation) * parseFloat(querySkeleton?.avgPrice) / 100)).toFixed(6),
-                    maxDeviation: (parseFloat(withousLossLong) + (parseFloat(order?.withoutLoss?.option?.deviation) * parseFloat(querySkeleton?.avgPrice) / 100)).toFixed(6),
-                }]
+                if (orderItem?.isPriceType === 'percent') {
+                    if(i === 0){
+                        const newDeviation = parseFloat(querySkeleton?.avgPrice) + (parseFloat(querySkeleton?.avgPrice) * parseFloat(orderItem?.deviation) / 100)
+
+                        skeletonTrailing = {
+                            ...skeletonTrailing,
+                            arrayPrice: [parseFloat(querySkeleton?.avgPrice)],
+                            arrayDeviation: [newDeviation],
+                        }
+                    } else {
+                        const newPrice = (parseFloat(skeletonTrailing?.arrayPrice[i-1])) - (parseFloat(querySkeleton?.avgPrice) * parseFloat(orderItem?.deviation) / 100)
+                        const newDeviation = parseFloat(newPrice) + (parseFloat(querySkeleton?.avgPrice) * parseFloat(orderItem?.deviation) / 100)
+
+                        skeletonTrailing = {
+                            ...skeletonTrailing,
+                            arrayPrice: [...skeletonTrailing?.arrayPrice, newPrice],
+                            arrayDeviation: [...skeletonTrailing?.arrayDeviation, newDeviation],
+                        }
+                    }
+                } else {
+                    if(i === 0){
+                        const newDeviation = parseFloat(querySkeleton?.avgPrice) + (parseFloat(querySkeleton?.avgPrice) * parseFloat(orderItem?.deviation) / 100)
+
+                        skeletonTrailing = {
+                            ...skeletonTrailing,
+                            arrayPrice: [parseFloat(querySkeleton?.avgPrice)],
+                            arrayDeviation: [newDeviation],
+                        }
+                    } else {
+                        const newPrice = parseFloat(skeletonTrailing?.arrayPrice[i-1]) - parseFloat(orderItem?.price)
+                        const newDeviation = parseFloat(newPrice) + (parseFloat(querySkeleton?.avgPrice) * parseFloat(orderItem?.deviation) / 100)
+
+                        skeletonTrailing = {
+                            ...skeletonTrailing,
+                            arrayPrice: [...skeletonTrailing?.arrayPrice, newPrice],
+                            arrayDeviation: [...skeletonTrailing?.arrayDeviation, newDeviation],
+                        }
+                    }
+                }
+
+            } else {
+                if (orderItem?.isPriceType === 'percent') {
+                    if(i === 0){
+                        const newDeviation = parseFloat(querySkeleton?.avgPrice) - (parseFloat(querySkeleton?.avgPrice) * parseFloat(orderItem?.deviation) / 100)
+
+                        skeletonTrailing = {
+                            ...skeletonTrailing,
+                            arrayPrice: [parseFloat(querySkeleton?.avgPrice)],
+                            arrayDeviation: [newDeviation],
+                        }
+                    } else {
+                        const newPrice = (parseFloat(skeletonTrailing?.arrayPrice[i-1])) + (parseFloat(querySkeleton?.avgPrice) * parseFloat(orderItem?.deviation) / 100)
+                        const newDeviation = parseFloat(newPrice) - (parseFloat(querySkeleton?.avgPrice) * parseFloat(orderItem?.deviation) / 100)
+
+                        skeletonTrailing = {
+                            ...skeletonTrailing,
+                            arrayPrice: [...skeletonTrailing?.arrayPrice, newPrice],
+                            arrayDeviation: [...skeletonTrailing?.arrayDeviation, newDeviation],
+                        }
+                    }
+                } else {
+                    if(i === 0){
+                        const newDeviation = parseFloat(querySkeleton?.avgPrice) - (parseFloat(querySkeleton?.avgPrice) * parseFloat(orderItem?.deviation) / 100)
+
+                        skeletonTrailing = {
+                            ...skeletonTrailing,
+                            arrayPrice: [parseFloat(querySkeleton?.avgPrice)],
+                            arrayDeviation: [newDeviation],
+                        }
+                    } else {
+                        const newPrice = parseFloat(skeletonTrailing?.arrayPrice[i-1]) + parseFloat(orderItem?.price)
+                        const newDeviation = parseFloat(newPrice) - (parseFloat(querySkeleton?.avgPrice) * parseFloat(orderItem?.deviation) / 100)
+
+                        skeletonTrailing = {
+                            ...skeletonTrailing,
+                            arrayPrice: [...skeletonTrailing?.arrayPrice, newPrice],
+                            arrayDeviation: [...skeletonTrailing?.arrayDeviation, newDeviation],
+                        }
+                    }
+                }
+            }
+            i++
         }
+
+        // console.log('TRAILING ->>>>>>>>>>>>>>>>>>>>',skeletonTrailing)
+
+        return {
+            ...prevOrder,
+            trailing: {...skeletonTrailing}
+        }
+    } catch (e) {
+        console.error(e)
     }
+
 }
 
 exports.getTrailingCH = getTrailingCH

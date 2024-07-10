@@ -5,7 +5,6 @@ const Order = require("../models/orders.model");
 const User = require("../models/user.model");
 const streamPrice = require('../webSocket/binance.price.socket')
 const addwithoutLoss = require('../webSocket/binance.price.socket')
-// const {setStremPriceSocket, addwithoutLoss} = require("../webSocket/binance.price.socket");
 const createSocket = require("../webSocket/binance.macd.socket");
 const {cancelOrder} = require("./cancelOrder");
 const {createEventsSocket} = require("../webSocket/binance.event.socket");
@@ -19,6 +18,7 @@ const {createTakeProfit} = require("./takeProfit");
 const {roundDecimal} = require("./roundToFirstSign");
 const {getWithoutLoss} = require("./getWithoutLoss");
 const {getTrailingCH} = require("./getTrailingCH");
+const addTrailing = require("../webSocket/binance.price.socket");
 
 async function createOrder(orderElement, userData, id) {
     try {
@@ -166,7 +166,14 @@ async function createOrder(orderElement, userData, id) {
                                 });
 
                                 streamPrice.streamPrice([position?.symbol], String(user?._id), user?.binance_test)
-                                addwithoutLoss.addwithoutLoss(ordersSystem?.withoutLoss)
+
+                                if (order?.withoutLoss?.status) {
+                                    addwithoutLoss.addwithoutLoss(ordersSystem?.withoutLoss)
+                                }
+
+                                if (order?.trailing?.status) {
+                                    addTrailing.addTrailing(ordersSystem?.trailing)
+                                }
 
                                 socketServer.socketServer.io.to(id).emit('updateOnePosition', {
                                     positionList: [{key: String(newPosition?._id), ...newPosition?._doc}],
@@ -235,16 +242,36 @@ async function createOrder(orderElement, userData, id) {
                                 cancelPositionOrder(responseBatch?.data[0]?.symbol, updatedOrder, user, key_1, key_2)
                             }
 
-                            let percent = 0
-                            const commission = parseFloat(updatedOrder?.commission) + (parseFloat(response[0]?.cumQuote) * parseFloat(updatedOrder?.openedConfig?.commission))
-                            const profit = ((parseFloat(response[0]?.cumQuote) - parseFloat(updatedOrder?.positionData?.cumQuote)) - commission).toFixed(6)
+                            function priceDecimal(num,counter) {
+                                let strNum = num.toString();
+                                let dotIndex = strNum.indexOf('.');
+                                if (dotIndex === -1 || dotIndex === strNum.length - 1) {
+                                    return num;
+                                } else {
+                                    return String(strNum.slice(0, dotIndex + counter));
+                                }
+                            }
 
-                            if (response[0]?.positionSide === 'SHORT')
-                                percent = ((((parseFloat(updatedOrder?.startPrice) - parseFloat(response[0]?.avgPrice)) / parseFloat(updatedOrder?.startPrice))) * 100 * parseFloat(updatedOrder?.leverage) - (commission)).toFixed(3);
-                            else
-                                percent = ((((parseFloat(response[0]?.avgPrice) - parseFloat(updatedOrder?.startPrice)) / parseFloat(updatedOrder?.startPrice))) * 100 * parseFloat(updatedOrder?.leverage) - (commission)).toFixed(3);
+                            const startPrice = parseFloat(updatedOrder?.startPrice);
+                            const closePrice = parseFloat(response[0]?.avgPrice);
+                            const quantity = parseFloat(updatedOrder?.positionData?.origQty);
+                            const cumQuantity = parseFloat(updatedOrder?.positionData?.cumQuote) || 0
+                            const cumQuantityClose = updatedOrder?.ClosePositionData?.cumQuote ? parseFloat(updatedOrder?.ClosePositionData?.cumQuote) : parseFloat(updatedOrder?.ClosePositionData?.q) * parseFloat(updatedOrder?.ClosePositionData?.ap);
 
-                            const message = `${percent > 0 ? '🟢' : '🔴'} #${updatedOrder?.currency} продажа по рынку\n\n<b>Кол-во:</b> ${parseFloat(response[0]?.origQty)}\n<b>Цена покупки:</b> ${parseFloat(updatedOrder?.startPrice).toFixed(3)}\n\n<b>Цена продажи:</b> ${parseFloat(response[0]?.avgPrice).toFixed(3)}\n<b>Сумма:</b> ${parseFloat(response[0]?.cumQuote).toFixed(3)}\n<b>Прибыль:</b> ${profit} (${percent > 0 ? '+' : ''}${percent}%)\n\n<b>id:</b> <code>${updatedOrder?._id}</code>`
+                            const openCommission = parseFloat(updatedOrder?.commission) || 0
+                            const closeCommission = updatedOrder?.ClosePositionData?.cumQuote ? (parseFloat(updatedOrder?.ClosePositionData?.cumQuote) * parseFloat(updatedOrder?.openedConfig?.commission)) : ((parseFloat(updatedOrder?.ClosePositionData?.q) * parseFloat(updatedOrder?.ClosePositionData?.ap)) * parseFloat(updatedOrder?.openedConfig?.commission)) || 0
+
+                            let percent = 0, profit = 0
+
+                            if(updatedOrder?.openedConfig?.positionSide === 'SHORT'){
+                                percent = priceDecimal((((startPrice - closePrice) / startPrice) * 100 * parseFloat(updatedOrder?.leverage) - (openCommission+closeCommission)),3);
+                                profit = cumQuantity - cumQuantityClose
+                            } else {
+                                percent = priceDecimal((((closePrice - startPrice) / startPrice) * 100 * parseFloat(updatedOrder?.leverage) - (openCommission+closeCommission)),3);
+                                profit = cumQuantityClose - cumQuantity
+                            }
+
+                            const message = `${percent > 0 ? '🟢' : '🔴'} #${updatedOrder?.currency} продажа по рынку\n\n<b>Кол-во:</b> ${parseFloat(response[0]?.origQty)}\n<b>Цена покупки:</b> ${parseFloat(updatedOrder?.startPrice).toFixed(3)}\n\n<b>Цена продажи:</b> ${parseFloat(response[0]?.avgPrice).toFixed(3)}\n<b>Сумма:</b> ${parseFloat(response[0]?.cumQuote).toFixed(3)}\n<b>Прибыль:</b> ${parseFloat(parseFloat(profit)-(parseFloat(openCommission)+parseFloat(closeCommission))).toFixed(6)} (${percent > 0 ? '+' : ''}${percent}%)\n\n<b>id:</b> <code>${updatedOrder?._id}</code>`
 
                             bot.telegram.sendMessage(user?.chat_id, message, {parse_mode: 'HTML'})
 
@@ -326,7 +353,7 @@ async function createOrder(orderElement, userData, id) {
                         // removeStreamPrice.removeStreamPrice(user?.token)
                     }
                 }).catch(async (e) => {
-                    console.log(`[${new Date().toLocaleTimeString('uk-UA')}] ERROR CANCELED ADMIN ORDER STEP 2: ${JSON.stringify(e?.response)}`)
+                    console.log(`[${new Date().toLocaleTimeString('uk-UA')}] ERROR CANCELED ADMIN ORDER STEP 2:`,e?.response)
 
                     socketServer.socketServer.io.to(id).emit('userMessage', {
                         type: 'error',
@@ -347,8 +374,6 @@ async function createOrder(orderElement, userData, id) {
 function createOrders(order,querySkeleton,user){
     let queryElements = [], ordersId = {}
 
-    // for(const position of querySkeleton) {
-
         if (order?.macd?.status && !order?.withoutLoss?.status) {
             ordersId.macd = {...order?.macd}
             createSocket.createSocket({
@@ -364,159 +389,21 @@ function createOrders(order,querySkeleton,user){
         }
 
         if (order?.trailing?.status && order?.withoutLoss?.status) {
-
+            ordersId = getWithoutLoss(order, user, querySkeleton,ordersId)
+            console.log('WITHOUTLOSS --->>>',ordersId)
+            ordersId = getTrailingCH({...order, currentPrice: ordersId?.withoutLoss?.fixedPrice}, user, querySkeleton, ordersId)
+            console.log('TRAILING --->>>',ordersId)
         } else {
             if(order?.trailing?.status){
-                ordersId = getTrailingCH(order, user, querySkeleton)
+                ordersId = getTrailingCH(order, user, querySkeleton, ordersId)
             } else if(order?.withoutLoss?.status){
-                ordersId = getWithoutLoss(order, user, querySkeleton)
+                ordersId = getWithoutLoss(order, user, querySkeleton, ordersId)
             }
         }
-    // }
 
-
-
-    // console.log('ordersId->>>>>>>>>>>>',ordersId)
-
-    // if (order?.trailing?.status || order?.withoutLoss?.status) {
-    //
-    //     if(!order?.withoutLoss?.status && order?.trailing?.status){
-    //         let trailingStopMarketQuery = {...querySkeleton};
-    //         trailingStopMarketQuery.side = querySkeleton.positionSide === 'LONG' ? 'SELL' : 'BUY';
-    //
-    //         trailingStopMarketQuery.type = `TRAILING_STOP_MARKET`;
-    //
-    //         if (order?.trailing?.percent) {
-    //             trailingStopMarketQuery.callbackRate = `${(order?.trailing?.stopPrice).toFixed(2)}`;
-    //         } else {
-    //             let result = (((parseFloat(order?.trailing?.stopPrice)/((parseFloat(order?.quantity)/parseFloat(order?.trailing?.currentPrice))*parseFloat(order?.leverage)))+parseFloat(order?.trailing?.currentPrice))-parseFloat(order?.trailing?.currentPrice))
-    //
-    //             let str = result.toString();
-    //             let index = str.indexOf(".");
-    //             let finalPercentResult = parseFloat(str.slice(0, index + 2));
-    //             trailingStopMarketQuery.callbackRate = `${finalPercentResult}`;
-    //         }
-    //
-    //         queryElements.push(trailingStopMarketQuery);
-    //     }
-    //     else if(order?.withoutLoss?.status && order?.trailing?.status){
-    //
-    //         const cross = order?.withoutLoss?.percent && order?.withoutLoss?.status ? ((parseFloat(order?.withoutLoss?.currentPrice) * parseFloat(order?.withoutLoss?.stopPrice))/100) : parseFloat(order?.withoutLoss?.stopPrice)
-    //         const fee = ((parseFloat(order?.quantity)*parseFloat(order?.leverage))*parseFloat(order?.withoutLoss?.currentPrice)*(parseFloat(order?.withoutLoss?.commission)*2))
-    //
-    //         if(order?.positionSide === 'SHORT'){
-    //
-    //             const withousLossShort = ((
-    //                         ((parseFloat(order?.quantity)*parseFloat(order?.leverage))*parseFloat(order?.withoutLoss?.currentPrice))
-    //                         -
-    //                         (parseFloat(cross)+parseFloat(fee))
-    //                     )
-    //                     *
-    //                     parseFloat(order?.withoutLoss?.currentPrice)
-    //                 )
-    //                 /
-    //                 ((parseFloat(order?.quantity)*parseFloat(order?.leverage))*parseFloat(order?.withoutLoss?.currentPrice))
-    //
-    //             ordersId = {...ordersId, ['withoutLoss']: {...order?.withoutLoss, fixed:false,fixedPrice:withousLossShort}}
-    //
-    //             if(order?.trailing?.status) {
-    //                 createTrailing(withousLossShort)
-    //             }
-    //
-    //             console.log('withousLossShort',withousLossShort)
-    //
-    //         } else{
-    //
-    //             console.log('withousLossLong')
-    //             const withousLossLong = ((
-    //                         ((parseFloat(order?.quantity)*parseFloat(order?.leverage))*parseFloat(order?.withoutLoss?.currentPrice))
-    //                         +
-    //                         (parseFloat(cross)+parseFloat(fee))
-    //                     )
-    //                     *
-    //                     parseFloat(order?.withoutLoss?.currentPrice)
-    //                 )
-    //                 /
-    //                 ((parseFloat(order?.quantity)*parseFloat(order?.leverage))*parseFloat(order?.withoutLoss?.currentPrice))
-    //
-    //
-    //             console.log('withousLossLONG',withousLossLong)
-    //
-    //             ordersId = {...ordersId, ['withoutLoss']: {...order?.withoutLoss, fixed:false,fixedPrice:withousLossLong}}
-    //
-    //             if(order?.trailing?.status) {
-    //                 createTrailing(withousLossLong)
-    //             }
-    //
-    //
-    //         }
-    //
-    //
-    //     } else if(order?.withoutLoss?.status){
-    //         const cross = order?.withoutLoss?.percent && order?.withoutLoss?.status ? ((parseFloat(order?.withoutLoss?.currentPrice) * parseFloat(order?.withoutLoss?.stopPrice))/100) : parseFloat(order?.withoutLoss?.stopPrice)
-    //         const fee = ((parseFloat(order?.quantity)*parseFloat(order?.leverage))*parseFloat(order?.withoutLoss?.currentPrice)*(parseFloat(order?.withoutLoss?.commission)*2))
-    //
-    //         if(order?.positionSide === 'SHORT'){
-    //
-    //             const withousLossShort = ((
-    //                         ((parseFloat(order?.quantity)*parseFloat(order?.leverage))*parseFloat(order?.withoutLoss?.currentPrice))
-    //                         -
-    //                         (parseFloat(cross)+parseFloat(fee))
-    //                     )
-    //                     *
-    //                     parseFloat(order?.withoutLoss?.currentPrice)
-    //                 )
-    //                 /
-    //                 ((parseFloat(order?.quantity)*parseFloat(order?.leverage))*parseFloat(order?.withoutLoss?.currentPrice))
-    //
-    //             ordersId = {...ordersId, ['withoutLoss']: {...order?.withoutLoss, fixed:false,fixedPrice:withousLossShort}}
-    //
-    //             console.log('withousLossShort',withousLossShort)
-    //
-    //         } else{
-    //
-    //             console.log('withousLossLong')
-    //             const withousLossLong = ((
-    //                         ((parseFloat(order?.quantity)*parseFloat(order?.leverage))*parseFloat(order?.withoutLoss?.currentPrice))
-    //                         +
-    //                         (parseFloat(cross)+parseFloat(fee))
-    //                     )
-    //                     *
-    //                     parseFloat(order?.withoutLoss?.currentPrice)
-    //                 )
-    //                 /
-    //                 ((parseFloat(order?.quantity)*parseFloat(order?.leverage))*parseFloat(order?.withoutLoss?.currentPrice))
-    //
-    //
-    //             console.log('withousLossLONG',withousLossLong)
-    //
-    //             ordersId = {...ordersId, ['withoutLoss']: {...order?.withoutLoss, fixed:false,fixedPrice:withousLossLong}}
-    //
-    //         }
-    //     }
-
-        // function createTrailing(activationPrice){
-        //     console.log(activationPrice)
-        //     let trailingStopMarketQuery = {...querySkeleton};
-        //     trailingStopMarketQuery.side = querySkeleton.positionSide === 'LONG' ? 'SELL' : 'BUY'; // IDK what should be in trailing
-        //
-        //     trailingStopMarketQuery.type = `TRAILING_STOP_MARKET`;
-        //     if (order?.trailing?.percent) {
-        //         trailingStopMarketQuery.callbackRate = `${(order?.trailing?.stopPrice).toFixed(2)}`;
-        //         trailingStopMarketQuery.activatePrice = `${activationPrice}`
-        //     } else {
-        //         trailingStopMarketQuery.callbackRate = `${((order?.trailing?.stopPrice / order?.trailing?.currentPrice) * 100).toFixed(2)}`;
-        //         trailingStopMarketQuery.activatePrice = `${activationPrice}`
-        //     }
-        //
-        //     console.log(trailingStopMarketQuery)
-        //     queryElements.push(trailingStopMarketQuery);
-        // }
-    // }
+    console.log('ordersId->>>>>>>>>>>>',ordersId)
 
     return ordersId
-
-    // return {queryElements, ordersId}
 }
 
 

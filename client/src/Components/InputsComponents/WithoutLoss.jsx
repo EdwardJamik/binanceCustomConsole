@@ -2,72 +2,44 @@ import React, {useState} from 'react';
 import {ConfigProvider, InputNumber, Select} from "antd";
 import {useDispatch, useSelector} from "react-redux";
 import {usePrice} from "../PriceSocket/PriceSocket.jsx";
+import {useSocket} from "../Socket/Socket.jsx";
 
 const WithoutLoss = () => {
     const dispatch = useDispatch();
-    const user = useSelector(state => state.currentOption)
+    const userOption = useSelector(state => state.currentOption)
     const positionType = useSelector(state => state.isTypePosition)
     const commission = useSelector(state => state.commission)
 
-    const {price} = usePrice()
+    const socket = useSocket()
 
-    const [isTrailingData, setTrailingData] = useState([
-            {
-                price: 0,
-                deviation: 0,
-                isDeviationType: 'percent',
-                isPriceType: 'fixed'
-            }
-        ]
-    )
+    const {price} = usePrice()
 
     const handleAmountChange = (value, index, type) => {
         if (value >= 0) {
-            let trailingData = [...isTrailingData]
+            let trailingData = [...userOption?.withoutLoss?.option]
 
             trailingData[index][type] = value
 
-            setTrailingData(trailingData)
-
             const userData = [...trailingData]
+            socket.emit('setUserData', {value:  {...userOption, withoutLoss: {status:userOption?.withoutLoss?.status,option:[...trailingData]}}});
             dispatch({type: 'SET_WITHOUTLOSS_DATA', payload: userData});
         }
     };
 
-    // function trimToFirstInteger(number) {
-    //     let integerPart = Math.trunc(number);
-    //
-    //     let fractionalPart = number - integerPart;
-    //
-    //     if (fractionalPart !== 0 && integerPart === 0) {
-    //         let factor = 4;
-    //         while (fractionalPart * factor < 1) {
-    //             factor *= 10;
-    //         }
-    //         fractionalPart = Math.ceil(fractionalPart * factor) / factor;
-    //     }
-    //
-    //     if (integerPart === 0)
-    //         return parseFloat(`${integerPart + fractionalPart}`);
-    //     else
-    //         return parseFloat(`${integerPart}`);
-    // }
-
     const handleTypeChange = (value, index, type) => {
-        let trailingData = [...isTrailingData]
+        let trailingData = [...userOption?.withoutLoss?.option]
 
         trailingData[index][type] = value
-        setTrailingData(trailingData)
-
 
         const userData = [...trailingData]
+        socket.emit('setUserData', {value:  {...userOption, withoutLoss: {status:userOption?.withoutLoss?.status,option:[...trailingData]}}});
         dispatch({type: 'SET_TRAILING_DATA', payload: userData});
     };
 
     const selectAfter = (type, index) => {
         return (
             <Select
-                value={isTrailingData[index][type === 'price' ? 'isPriceType' : 'isDeviationType'] === 'fixed' ? 'fixed' : 'percent'}
+                value={userOption?.withoutLoss?.option[index][type === 'price' ? 'isPriceType' : 'isDeviationType'] === 'fixed' ? 'fixed' : 'percent'}
                 style={{
                     width: 50,
                 }}
@@ -97,17 +69,17 @@ const WithoutLoss = () => {
                 }}
             >
                 <div style={{maxWidth: '260px'}}>
-                    {isTrailingData ?
-                        isTrailingData?.map((item, index) => {
+                    {userOption?.withoutLoss?.option ?
+                        userOption?.withoutLoss?.option?.map((item, index) => {
 
-                            const currentSize =  (parseFloat(user?.amount)/parseFloat(price))
-                            const cross = isTrailingData[0]?.isPriceType  === 'fixed' ? parseFloat(isTrailingData[0]?.price) : (parseFloat(isTrailingData[0]?.price)*(parseFloat(price)) / 100)
-                            const fee = ((parseFloat(currentSize)*parseFloat(user?.adjustLeverage))*parseFloat(price)*parseFloat(commission.commissionTaker))*2
+                            const currentSize =  (parseFloat(userOption?.amount)/parseFloat(price))
+                            const cross = userOption?.withoutLoss?.option[0]?.isPriceType  === 'fixed' ? parseFloat(userOption?.withoutLoss?.option[0]?.price) : (parseFloat(userOption?.withoutLoss?.option[0]?.price)*(parseFloat(price)) / 100)
+                            const fee = ((parseFloat(currentSize)*parseFloat(userOption?.adjustLeverage))*parseFloat(price)*parseFloat(commission.commissionTaker))*2
 
-                            const priceProcent = user[`withoutLoss`].procent
+                            const priceProcent = userOption?.withoutLoss?.option[0].deviation
 
-                            const withousLossLong = (((parseFloat(user?.amount)*parseFloat(user?.adjustLeverage)) + (parseFloat(cross)+parseFloat(fee))) * parseFloat(price)) / (parseFloat(user?.amount)*parseFloat(user?.adjustLeverage))
-                            const withousLossShort = (((parseFloat(user?.amount)*parseFloat(user?.adjustLeverage)) - (parseFloat(cross)+parseFloat(fee))) * parseFloat(price)) / (parseFloat(user?.amount)*parseFloat(user?.adjustLeverage))
+                            const withousLossLong = (((parseFloat(userOption?.amount)*parseFloat(userOption?.adjustLeverage)) + (parseFloat(cross)+parseFloat(fee))) * parseFloat(price)) / (parseFloat(userOption?.amount)*parseFloat(userOption?.adjustLeverage))
+                            const withousLossShort = (((parseFloat(userOption?.amount)*parseFloat(userOption?.adjustLeverage)) - (parseFloat(cross)+parseFloat(fee))) * parseFloat(price)) / (parseFloat(userOption?.amount)*parseFloat(userOption?.adjustLeverage))
 
                             return (
                                 <div key={index} style={{position: 'relative'}}>

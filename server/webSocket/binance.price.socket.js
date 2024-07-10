@@ -9,33 +9,7 @@ const {createOrder} = require("../util/createOrder");
 let currency = {}
 let user = {}
 
-let withoutLoss =
-    {
-        // BTCUSDT:
-        //     [{
-        //         orderId: '0',
-        //         userId: 'saf',
-        //         q: 10,
-        //         positionSide: 'LONG',
-        //         symbol: 'BTCUSDT',
-        //         fixPrice: 33400.0,
-        //         minDeviation: 33399.0,
-        //         maxDeviation: 33401.00,
-        //         fix: false,
-        //         fixDeviation: false
-        //     },{
-        //         orderId: '1',
-        //         userId: 'saf',
-        //         q: 0,
-        //         positionSide: 'SHORT',
-        //         symbol: 'BTCUSDT',
-        //         fixPrice: 33400.0,
-        //         minDeviation: 33403.0,
-        //         maxDeviation: 33397.00,
-        //         fix: false,
-        //         fixDeviation: false
-        //     }]
-    }
+let withoutLoss = {}
 
 let trailingCh =
     {
@@ -78,6 +52,44 @@ let trailingCh =
 function streamPrice(symbol,id,type_binance) {
     try{
 
+        // function getRandomFloat(min, max) {
+        //     return Math.random() * (max - min) + min;
+        // }
+        //
+        //     // Початкові ціни для ETHUSDT та BTCUSDT (можна вибрати будь-яке початкове значення в заданому діапазоні)
+        //     let ethPrice = getRandomFloat(2000.0, 3000.0);
+        //     // let btcPrice = getRandomFloat(33390.0, 33410.0);
+        //     let btcPrice = 33399.8
+        //
+        //     // Імітуємо коливання цін кілька разів
+        //     setInterval(() => {
+        //         // Генеруємо нові ціни для ETHUSDT та BTCUSDT
+        //         let ethPriceChange = getRandomFloat(-1.2, 1.2); // Зміна ціни ETHUSDT в діапазоні від -5 до +5
+        //         let btcPriceChange = getRandomFloat(-1.2, 1.2); // Зміна ціни BTCUSDT в діапазоні від -500 до +500
+        //
+        //         // Обновлюємо поточні ціни
+        //         ethPrice += ethPriceChange;
+        //         btcPrice += btcPriceChange;
+        //
+        //         // Виводимо поточні ціни, округлюючи до двох знаків після коми
+        //         // console.log(`ETHUSDT price: ${ethPrice.toFixed(2)}, BTCUSDT price: ${btcPrice.toFixed(2)}`);
+        //
+        //         // wl('ETHUSDT',ethPrice)
+        //         // wl('BTCUSDT',btcPrice)
+        //         // ch('ETHUSDT',ethPrice)
+        //         // ch('BTCUSDT',btcPrice)
+        //
+        //         // console.log('WL ->>>>>>>>>>',withoutLoss[s]?.length)
+        //         if(withoutLoss['ETHUSDT']?.length || withoutLoss['BTCUSDT']?.length) {
+        //             wl('ETHUSDT', parseFloat(ethPrice))
+        //             wl('BTCUSDT', parseFloat(btcPrice))
+        //         }
+        //         // console.log('CH ->>>>>>>>>>',trailingCh[s]?.length)
+        //         // if(trailingCh[s]?.length) {
+        //         //     ch('ETHUSDT', parseFloat(ethPrice))
+        //         //     ch('BTCUSDT', parseFloat(btcPrice))
+        //         // }
+        //     }, 500); // Інтервал у мілісекундах (тут кожну секунду)
         for(const curr of symbol)
         {
             if(!currency[curr] && !user[curr]){
@@ -106,9 +118,11 @@ function streamPrice(symbol,id,type_binance) {
                     if(user[s]) {
                         socketServer.socketServer.io.emit('positionPrices', [`${s}`, parseFloat(p)])
 
+
+                        console.log('WL ->>>>>>>>>>',withoutLoss[s]?.length)
                         if(withoutLoss[s]?.length)
                             wl(s,parseFloat(p))
-
+                        console.log('WL ->>>>>>>>>>',trailingCh[s]?.length)
                         if(trailingCh[s]?.length)
                             ch(s,parseFloat(p))
                     }
@@ -137,6 +151,7 @@ function streamPrice(symbol,id,type_binance) {
 
 async function wl(symbol, price) {
     try {
+        console.log('WL START', symbol, price, withoutLoss[symbol]?.length)
         const currentPrice = parseFloat(price)
         const currentSymbol = symbol
 
@@ -148,7 +163,7 @@ async function wl(symbol, price) {
                 if (!order?.fix && !order?.fixDeviation && parseFloat(order?.fixPrice) <= currentPrice && order?.positionSide === 'LONG' ||
                     !order?.fix && !order?.fixDeviation && parseFloat(order?.fixPrice) >= currentPrice && order?.positionSide === 'SHORT') {
 
-                    fixedPosition(order, true)
+                    await fixedPosition(order, true)
 
                     withoutLoss[currentSymbol][index].fix = true;
                     if (order?.positionSide === 'LONG')
@@ -161,7 +176,7 @@ async function wl(symbol, price) {
                     order?.fix && !order?.fixDeviation && parseFloat(order?.minDeviation) <= currentPrice && order?.positionSide === 'SHORT') {
                     // Якщо мінімальний поріг більше ніж ціна
 
-                    closePosition(order, true)
+                    await closePosition(order, true)
 
                     // const orderConf = {
                     //     symbol: currentSymbol,
@@ -186,7 +201,7 @@ async function wl(symbol, price) {
                     order?.fix && !order?.fixDeviation && parseFloat(order?.maxDeviation) >= currentPrice && order?.positionSide === 'SHORT') {
                     // Вимкнення мінімального порогу
 
-                    deviationFixedPosition(order, true)
+                    await deviationFixedPosition(order, true)
                     withoutLoss[currentSymbol][index].fixDeviation = true;
                     // console.log(`fixDeviation ${order?.orderId}`, parseFloat(order?.maxDeviation) <= currentPrice, parseFloat(order?.maxDeviation), '<=', currentPrice);
 
@@ -203,7 +218,7 @@ async function wl(symbol, price) {
 
                     // console.log(`CLOSE ORDER ${order?.orderId}`, parseFloat(order?.fixPrice) >= currentPrice, parseFloat(order?.fixPrice), '>=', currentPrice);
 
-                    closePosition(order, true)
+                    await closePosition(order, true)
                     // const orderConf = {
                     //     symbol: currentSymbol,
                     //     positionSide: order?.positionSide,
@@ -225,12 +240,13 @@ async function wl(symbol, price) {
                 index++;
             }
         }
+        console.log('WL STOP', symbol, price)
     } catch (e) {
         console.error(e)
     }
 }
 
-function ch(symbol,price) {
+async function ch(symbol, price) {
     try {
         const currentPrice = parseFloat(price)
         const currentSymbol = symbol
@@ -305,7 +321,7 @@ function ch(symbol,price) {
                         id: String(order?.orderId)
                     }
 
-                    createOrder({order: {orderConf}}, false, order?.userId)
+                    await createOrder({order: {orderConf}}, false, order?.userId)
                     trailingCh[currentSymbol].splice(index, 1);
                     console.log(trailingCh[currentSymbol])
 
@@ -445,6 +461,19 @@ function addwithoutLoss(settings){
     }
 }
 
+function addTrailing(settings){
+    if(trailingCh[settings?.symbol]){
+        trailingCh[settings?.symbol].push({...settings})
+    } else {
+        trailingCh = {
+            [settings?.symbol]:[
+                {...settings}
+            ],
+            ...trailingCh
+        }
+    }
+}
+
 async function closePosition(order,type) {
     if(type) {
         const user = await User.findOne({_id: order?.userId})
@@ -564,3 +593,4 @@ async function removeStreamPrice(id) {
 exports.streamPrice = streamPrice
 exports.removeStreamPrice = removeStreamPrice
 exports.addwithoutLoss = addwithoutLoss
+exports.addTrailing = addTrailing
