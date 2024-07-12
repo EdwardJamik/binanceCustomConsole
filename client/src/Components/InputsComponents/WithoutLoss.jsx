@@ -73,27 +73,48 @@ const WithoutLoss = () => {
                         userOption?.withoutLoss?.option?.map((item, index) => {
 
                             // const currentSize =  (parseFloat(userOption?.amount)/parseFloat(price))
-                            const currentSize = (() => {
-                                const result = parseFloat(userOption?.amount) / parseFloat(price);
-                                if (Number.isNaN(result) || !Number.isFinite(result)) return 0;
+                            // const currentSize = (() => {
+                            //     const result = parseFloat(userOption?.amount) / parseFloat(price);
+                            //     if (Number.isNaN(result) || !Number.isFinite(result)) return 0;
+                            //
+                            //     const integerPart = Math.trunc(result);
+                            //     if (integerPart !== 0) {
+                            //         return integerPart;
+                            //     } else {
+                            //         const fractionalPart = result.toString().split('.')[1];
+                            //         let firstTwoIntegers = '';
+                            //         let digitCount = 0;
+                            //
+                            //         for (let digit of fractionalPart) {
+                            //             firstTwoIntegers += digit;
+                            //             if (digit !== '0') digitCount++;
+                            //             if (digitCount === 2) break;
+                            //         }
+                            //
+                            //         return parseFloat(`0.${firstTwoIntegers}`);
+                            //     }
+                            // })();
+                            function roundDecimal(number) {
+                                let integerPart = Math.trunc(number);
 
-                                const integerPart = Math.trunc(result);
-                                if (integerPart !== 0) {
-                                    return integerPart;
-                                } else {
-                                    const fractionalPart = result.toString().split('.')[1];
-                                    let firstTwoIntegers = '';
-                                    let digitCount = 0;
+                                let fractionalPart = number - integerPart;
 
-                                    for (let digit of fractionalPart) {
-                                        firstTwoIntegers += digit;
-                                        if (digit !== '0') digitCount++;
-                                        if (digitCount === 2) break;
+                                if (fractionalPart !== 0 && integerPart === 0) {
+                                    let factor = 1;
+                                    while (fractionalPart * factor < 1) {
+                                        factor *= 10;
                                     }
-
-                                    return parseFloat(`0.${firstTwoIntegers}`);
+                                    fractionalPart = Math.ceil(fractionalPart * factor) / factor;
                                 }
-                            })();
+
+                                if (integerPart === 0)
+                                    return parseFloat(`${integerPart + fractionalPart}`);
+                                else
+                                    return parseFloat(`${integerPart}`);
+
+                            }
+
+                            const currentSize = roundDecimal((parseFloat(userOption?.amount))/parseFloat(price))
                             const cross = userOption?.withoutLoss?.option[0]?.isPriceType  === 'fixed' ? parseFloat(userOption?.withoutLoss?.option[0]?.price) : (parseFloat(userOption?.withoutLoss?.option[0]?.price)*(parseFloat(price)) / 100)
                             const fee = ((parseFloat(currentSize)*parseFloat(userOption?.adjustLeverage))*parseFloat(price)*parseFloat(commission.commissionTaker))*2
 

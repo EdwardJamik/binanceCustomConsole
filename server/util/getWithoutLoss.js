@@ -1,7 +1,7 @@
 function getWithoutLoss (order, user, querySkeleton, prevOrder){
     try {
         let ordersId = prevOrder
-        const currentSize =  parseFloat(querySkeleton?.executedQty)
+        const currentSize =  parseFloat(querySkeleton?.executedQty)/parseFloat(order?.leverage)
         const cross = order?.withoutLoss?.option?.isPriceType !== 'fixed' ? ((parseFloat(querySkeleton?.avgPrice) * parseFloat(order?.withoutLoss?.option?.price))/100) : parseFloat(order?.withoutLoss?.option?.price)
         const fee = ((parseFloat(currentSize)*parseFloat(order?.leverage))*parseFloat(querySkeleton?.avgPrice)*(parseFloat(order?.withoutLoss?.option?.commission)*2))
 
