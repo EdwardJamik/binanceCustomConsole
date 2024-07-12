@@ -155,21 +155,21 @@ async function wl(symbol, price) {
         const currentPrice = parseFloat(price)
         const currentSymbol = symbol
 
-        if (currentSymbol && currentPrice && withoutLoss[currentSymbol]) {
+        if (currentSymbol && currentPrice && withoutLoss[symbol]) {
 
             let index = 0;
-            for (const order of withoutLoss[currentSymbol]) {
+            for (const order of withoutLoss[symbol]) {
 
-                if (!order?.fix && !order?.fixDeviation && parseFloat(order?.fixPrice) <= currentPrice && order?.positionSide === 'LONG' ||
-                    !order?.fix && !order?.fixDeviation && parseFloat(order?.fixPrice) >= currentPrice && order?.positionSide === 'SHORT') {
+                if (!order?.fix && !order?.fixDeviation && parseFloat(order?.fixedPrice) <= currentPrice && order?.positionSide === 'LONG' ||
+                    !order?.fix && !order?.fixDeviation && parseFloat(order?.fixedPrice) >= currentPrice && order?.positionSide === 'SHORT') {
 
                     await fixedPosition(order, true)
 
                     withoutLoss[currentSymbol][index].fix = true;
                     if (order?.positionSide === 'LONG')
-                        console.log(`LONG -> FIXED price: ${currentPrice} || ${order?.orderId}`, parseFloat(order?.fixPrice) <= currentPrice, parseFloat(order?.fixPrice), '<=', currentPrice);
+                        console.log(`LONG -> FIXED price: ${currentPrice} || ${order?.orderId}`, parseFloat(order?.fixedPrice) <= currentPrice, parseFloat(order?.fixedPrice), '<=', currentPrice);
                     else
-                        console.log(`SHORT -> FIXED price: ${currentPrice} || ${order?.orderId}`, parseFloat(order?.fixPrice) >= currentPrice, parseFloat(order?.fixPrice), '>=', currentPrice);
+                        console.log(`SHORT -> FIXED price: ${currentPrice} || ${order?.orderId}`, parseFloat(order?.fixedPrice) >= currentPrice, parseFloat(order?.fixedPrice), '>=', currentPrice);
                 }
 
                 if (order?.fix && !order?.fixDeviation && parseFloat(order?.minDeviation) >= currentPrice && order?.positionSide === 'LONG' ||
@@ -191,9 +191,9 @@ async function wl(symbol, price) {
                     withoutLoss[currentSymbol].splice(index, 1);
 
                     if (order?.positionSide === 'LONG')
-                        console.log(`LONG -> CLOSE ORDER fixDeviation price: ${currentPrice} || ${order?.orderId}`, parseFloat(order?.minDeviation) >= currentPrice, parseFloat(order?.fixPrice), '>=', currentPrice);
+                        console.log(`LONG -> CLOSE ORDER fixDeviation price: ${currentPrice} || ${order?.orderId}`, parseFloat(order?.minDeviation) >= currentPrice, parseFloat(order?.fixedPrice), '>=', currentPrice);
                     else
-                        console.log(`SHORT -> CLOSE ORDER fixDeviation price: ${currentPrice} || ${order?.orderId}`, parseFloat(order?.minDeviation) <= currentPrice, parseFloat(order?.fixPrice), '<=', currentPrice);
+                        console.log(`SHORT -> CLOSE ORDER fixDeviation price: ${currentPrice} || ${order?.orderId}`, parseFloat(order?.minDeviation) <= currentPrice, parseFloat(order?.fixedPrice), '<=', currentPrice);
 
                 }
 
@@ -212,8 +212,8 @@ async function wl(symbol, price) {
 
                 }
 
-                if (order?.fix && order?.fixDeviation && parseFloat(order?.fixPrice) >= currentPrice && order?.positionSide === 'LONG' ||
-                    order?.fix && order?.fixDeviation && parseFloat(order?.fixPrice) <= currentPrice && order?.positionSide === 'SHORT') {
+                if (order?.fix && order?.fixDeviation && parseFloat(order?.fixedPrice) >= currentPrice && order?.positionSide === 'LONG' ||
+                    order?.fix && order?.fixDeviation && parseFloat(order?.fixedPrice) <= currentPrice && order?.positionSide === 'SHORT') {
                     // Якщо ціна фікс ціна більше ніж поточна ціна
 
                     // console.log(`CLOSE ORDER ${order?.orderId}`, parseFloat(order?.fixPrice) >= currentPrice, parseFloat(order?.fixPrice), '>=', currentPrice);
@@ -232,9 +232,9 @@ async function wl(symbol, price) {
                     withoutLoss[currentSymbol].splice(index, 1);
 
                     if (order?.positionSide === 'LONG')
-                        console.log(`LONG -> CLOSE ORDER price: ${currentPrice} || ${order?.orderId}`, parseFloat(order?.fixPrice) >= currentPrice, parseFloat(order?.fixPrice), '>=', currentPrice);
+                        console.log(`LONG -> CLOSE ORDER price: ${currentPrice} || ${order?.orderId}`, parseFloat(order?.fixedPrice) >= currentPrice, parseFloat(order?.fixedPrice), '>=', currentPrice);
                     else
-                        console.log(`SHORT -> CLOSE ORDER price: ${currentPrice} || ${order?.orderId}`, parseFloat(order?.fixPrice) <= currentPrice, parseFloat(order?.fixPrice), '<=', currentPrice);
+                        console.log(`SHORT -> CLOSE ORDER price: ${currentPrice} || ${order?.orderId}`, parseFloat(order?.fixedPrice) <= currentPrice, parseFloat(order?.fixedPrice), '<=', currentPrice);
                 }
 
                 index++;

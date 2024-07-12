@@ -184,9 +184,9 @@ const WithoutLoss = () => {
                                             color: '#fff'
                                         }}>
                                             {positionType ?
-                                                item?.isDeviationType === 'fixed' ? <>min: {(parseFloat(withousLossLong) - parseFloat(item?.deviation)).toFixed(6)}<br/>max: {(parseFloat(withousLossLong) + parseFloat(item?.deviation)).toFixed(6)}</> : <>min: {(parseFloat(withousLossLong) - (parseFloat(price) * parseFloat(item?.deviation) / 100)).toFixed(6)}<br/>max: {(parseFloat(withousLossLong) + (parseFloat(price) * parseFloat(item?.deviation) / 100)).toFixed(6)}</>
+                                                <>min: {(parseFloat(withousLossLong) - (parseFloat(withousLossLong) * parseFloat(item?.deviation) / 100)).toFixed(6)}<br/>max: {(parseFloat(withousLossLong) + (parseFloat(withousLossLong) * parseFloat(item?.deviation) / 100)).toFixed(6)}</>
                                                 :
-                                                item?.isDeviationType === 'fixed' ? <>min: {(parseFloat(withousLossShort) + parseFloat(item?.deviation)).toFixed(6)}<br/>max: {(parseFloat(withousLossShort) - parseFloat(item?.deviation)).toFixed(6)}</> : <>min: {(parseFloat(withousLossShort) + (parseFloat(price) * parseFloat(item?.deviation) / 100)).toFixed(6)}<br/>max: {(parseFloat(withousLossShort) - (parseFloat(price) * parseFloat(item?.deviation) / 100)).toFixed(6)}</>
+                                                <>min: {(parseFloat(withousLossShort) + (parseFloat(withousLossShort) * parseFloat(item?.deviation) / 100)).toFixed(6)}<br/>max: {(parseFloat(withousLossShort) - (parseFloat(withousLossShort) * parseFloat(item?.deviation) / 100)).toFixed(6)}</>
                                             }
                                        </span>
                                     </div>
