@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import {useSocket} from "../Socket/Socket.jsx";
 import {useDispatch, useSelector} from "react-redux";
 import {usePrice} from "../PriceSocket/PriceSocket.jsx";
@@ -70,9 +70,19 @@ const CreatePosition = () => {
         });
     }
 
+    const clickTimeoutRef = useRef(null);
+
     const setTypePosition = (type) =>{
-        socket.emit('setUserData', {value:  {...user, positionSide: positionType}});
-        dispatch({type: 'SET_POSITION_TYPE', payload: type});
+        if (clickTimeoutRef.current) {
+            clearTimeout(clickTimeoutRef.current);
+            clickTimeoutRef.current = null;
+            socket.emit('setUserData', {value:  {...user, positionSide: type}});
+            dispatch({type: 'SET_POSITION_TYPE', payload: type});
+        } else {
+            clickTimeoutRef.current = setTimeout(() => {
+                clickTimeoutRef.current = null;
+            }, 300);
+        }
     }
 
     return (
