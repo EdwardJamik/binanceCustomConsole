@@ -72,7 +72,28 @@ const WithoutLoss = () => {
                     {userOption?.withoutLoss?.option ?
                         userOption?.withoutLoss?.option?.map((item, index) => {
 
-                            const currentSize =  (parseFloat(userOption?.amount)/parseFloat(price))
+                            // const currentSize =  (parseFloat(userOption?.amount)/parseFloat(price))
+                            const currentSize = (() => {
+                                const result = parseFloat(userOption?.amount) / parseFloat(price);
+                                if (Number.isNaN(result) || !Number.isFinite(result)) return 0;
+
+                                const integerPart = Math.trunc(result);
+                                if (integerPart !== 0) {
+                                    return integerPart;
+                                } else {
+                                    const fractionalPart = result.toString().split('.')[1];
+                                    let firstTwoIntegers = '';
+                                    let digitCount = 0;
+
+                                    for (let digit of fractionalPart) {
+                                        firstTwoIntegers += digit;
+                                        if (digit !== '0') digitCount++;
+                                        if (digitCount === 2) break;
+                                    }
+
+                                    return parseFloat(`0.${firstTwoIntegers}`);
+                                }
+                            })();
                             const cross = userOption?.withoutLoss?.option[0]?.isPriceType  === 'fixed' ? parseFloat(userOption?.withoutLoss?.option[0]?.price) : (parseFloat(userOption?.withoutLoss?.option[0]?.price)*(parseFloat(price)) / 100)
                             const fee = ((parseFloat(currentSize)*parseFloat(userOption?.adjustLeverage))*parseFloat(price)*parseFloat(commission.commissionTaker))*2
 
@@ -83,7 +104,9 @@ const WithoutLoss = () => {
 
                             return (
                                 <div key={index} style={{position: 'relative'}}>
+                                    {/*{currentSize}*/}
                                     <div style={{display: 'flex', position: 'relative'}}>
+
                                         <InputNumber
                                             style={{
                                                 padding: '6px 6px 6px',

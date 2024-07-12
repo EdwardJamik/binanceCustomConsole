@@ -202,8 +202,8 @@ const PositionBefore = () => {
                                         children: 'Take Profit',
                                     },
                                     {
-                                        color: '#1A1A1A',
                                         style: {display: 'flex', paddingBottom: '16px', height: '34px'},
+                                        color: (record?.ordersId?.withoutLoss ? '#f0d85a' : '#1A1A1A'),
                                         children: 'БУ',
                                     },
                                     {
@@ -213,7 +213,7 @@ const PositionBefore = () => {
                                     },
                                     {
                                         style: {display: 'flex', paddingBottom: '0', height: '0'},
-                                        color: '#1A1A1A',
+                                        color: (record?.ordersId?.macd ? '#f0d85a' : '#1A1A1A'),
                                         children: 'Macd',
                                     },
                                 ]}
