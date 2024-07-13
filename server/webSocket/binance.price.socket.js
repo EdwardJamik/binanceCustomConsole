@@ -63,30 +63,30 @@ function streamPrice(symbol,id,type_binance) {
                     axios.get(`https://${type_binance ? TEST_BINANCE_API_DOMAIN : BINANCE_API_DOMAIN}/fapi/v3/ticker/price?symbol=${curr.toLowerCase()}`).then((response) => {
                         const p = response.data.price;
 
-                        socketServer.socketServer.io.emit('positionPrices', [`${curr}`,parseFloat(p)])
+                        socketServer.socketServer.io.emit('positionPrices', [`${curr}`, parseFloat(p)])
                     });
 
-                        currency[curr] = ws
+                    currency[curr] = ws
 
-                    if(user[curr])
+                    if (user[curr])
                         user[curr] = [...user[curr], id]
                     else
                         user[curr] = [id]
                 };
 
-                ws.onmessage = event => {
-                    const {p,s} = JSON.parse(event.data)
-                    if(user[s]) {
+                ws.onmessage = async event => {
+                    const {p, s} = JSON.parse(event.data)
+                    if (user[s]) {
+                        await wl(s, parseFloat(p))
+                        await ch(s, parseFloat(p))
                         socketServer.socketServer.io.emit('positionPrices', [`${s}`, parseFloat(p)])
-                        wl(s, parseFloat(p))
-                        ch(s, parseFloat(p))
                     }
 
                 };
 
                 ws.onclose = () => {
                     console.log(`Close to server ${curr}`);
-                    if(user[curr]) {
+                    if (user[curr]) {
                         ws = new WebSocket(`wss://fstream.binance.com/ws/${curr.toLowerCase()}@trade`);
                         currency[curr] = ws
                     }
@@ -115,6 +115,7 @@ async function wl(symbol, price) {
             for (const order of withoutLoss[symbol]) {
 
                 let precent = 0, profit = 0
+
                 if (order?.positionSide === 'LONG') {
                     precent = parseFloat(order?.q) * parseFloat(price) * parseFloat(order?.commissionPrecent)
                     profit = (((parseFloat(price) - parseFloat(order?.startPrice)) * parseFloat(order?.q))) - (precent + parseFloat(order?.commission))
@@ -138,18 +139,14 @@ async function wl(symbol, price) {
 
                         withoutLoss[currentSymbol].splice(index, 1);
 
-                        const orderConf = {
-                            symbol: order?.symbol,
-                            positionSide: order?.positionSide,
-                            side: order?.positionSide === 'LONG' ? 'SELL' : 'BUY',
-                            quantity: order?.q,
-                            type: 'MARKET',
-                            id: order?.orderId
-                        }
-
-                        await createOrder({order: {...orderConf}}, false, order?.userId)
-
-                        console.log(`[${new Date().toLocaleTimeString('uk-UA')}] CLOSE FIXED POSITION: ${JSON.stringify(orderConf)}`)
+                        await createOrder({order: {
+                                symbol: order?.symbol,
+                                positionSide: order?.positionSide,
+                                side: order?.positionSide === 'LONG' ? 'SELL' : 'BUY',
+                                quantity: order?.q,
+                                type: 'MARKET',
+                                id: order?.orderId
+                            }}, false, order?.userId)
 
                         await Order.updateOne({
                             positionsId: order?.orderId,
@@ -157,6 +154,15 @@ async function wl(symbol, price) {
                         }, {
                             "ordersId.withoutLoss.closed": true
                         });
+
+                        console.log(`[${new Date().toLocaleTimeString('uk-UA')}] CLOSE FIXED POSITION: ${JSON.stringify({
+                            symbol: order?.symbol,
+                            positionSide: order?.positionSide,
+                            side: order?.positionSide === 'LONG' ? 'SELL' : 'BUY',
+                            quantity: order?.q,
+                            type: 'MARKET',
+                            id: order?.orderId
+                        })}`)
 
                         console.log(`CLOSE ORDER fixDeviation price: ${profit} || ${order?.orderId}`, parseFloat(order?.minDeviation) <= profit, parseFloat(order?.fixedPrice), '<=', profit);
 
@@ -175,18 +181,24 @@ async function wl(symbol, price) {
                         // Якщо ціна фікс ціна більше ніж поточна ціна
 
                         withoutLoss[currentSymbol].splice(index, 1);
-                        const orderConf = {
+
+                        await createOrder({order: {
+                                symbol: order?.symbol,
+                                positionSide: order?.positionSide,
+                                side: order?.positionSide === 'LONG' ? 'SELL' : 'BUY',
+                                quantity: order?.q,
+                                type: 'MARKET',
+                                id: order?.orderId
+                            }}, false, order?.userId)
+
+                        console.log(`[${new Date().toLocaleTimeString('uk-UA')}] CLOSE FIXED POSITION: ${JSON.stringify({
                             symbol: order?.symbol,
                             positionSide: order?.positionSide,
                             side: order?.positionSide === 'LONG' ? 'SELL' : 'BUY',
                             quantity: order?.q,
                             type: 'MARKET',
                             id: order?.orderId
-                        }
-
-                        await createOrder({order: {...orderConf}}, false, order?.userId)
-
-                        console.log(`[${new Date().toLocaleTimeString('uk-UA')}] CLOSE FIXED POSITION: ${JSON.stringify(orderConf)}`)
+                        })}`)
 
                         await Order.updateOne({
                             positionsId: order?.orderId,
