@@ -128,8 +128,8 @@ async function wl(symbol, price) {
                 if(profit){
                     if (!order?.fix && !order?.fixDeviation && parseFloat(order?.fixedPrice) <= parseFloat(profit)) {
 
-                        await fixedPosition(order, true)
                         withoutLoss[currentSymbol][index].fix = true;
+                        await fixedPosition(order, true)
                         console.log(`FIXED price: ${profit} || ${order?.orderId}`, parseFloat(order?.fixedPrice) >= profit, parseFloat(order?.fixedPrice), '>=', profit);
                     }
 
@@ -158,15 +158,15 @@ async function wl(symbol, price) {
                             "ordersId.withoutLoss.closed": true
                         });
 
-                            console.log(`CLOSE ORDER fixDeviation price: ${profit} || ${order?.orderId}`, parseFloat(order?.minDeviation) <= profit, parseFloat(order?.fixedPrice), '<=', profit);
+                        console.log(`CLOSE ORDER fixDeviation price: ${profit} || ${order?.orderId}`, parseFloat(order?.minDeviation) <= profit, parseFloat(order?.fixedPrice), '<=', profit);
 
                     }
 
                     if (order?.fix && !order?.fixDeviation && parseFloat(order?.maxDeviation) <= profit) {
                         // Вимкнення мінімального порогу
 
-                        await deviationFixedPosition(order, true)
                         withoutLoss[currentSymbol][index].fixDeviation = true;
+                        await deviationFixedPosition(order, true)
                         console.log(`fixDeviation price: ${profit} || ${order?.orderId}`, parseFloat(order?.maxDeviation) >= profit, parseFloat(order?.maxDeviation), '>=', profit);
 
                     }
