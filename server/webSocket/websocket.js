@@ -113,7 +113,7 @@ class SocketIOServer {
 
                 const user = await User.findOne({token: socket?.id})
 
-                createOrder(data, user, socket.id)
+                createOrder(data, user, String(user?._id))
             });
 
             socket.on('setLeverage', async (data) => {
