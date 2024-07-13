@@ -147,7 +147,7 @@ async function wl(symbol, price) {
                             id: order?.orderId
                         }
 
-                        await createOrder({order: {...orderConf}}, user, order?.userId)
+                        await createOrder({order: {...orderConf}}, false, order?.userId)
 
                         console.log(`[${new Date().toLocaleTimeString('uk-UA')}] CLOSE FIXED POSITION: ${JSON.stringify(orderConf)}`)
 
@@ -184,7 +184,7 @@ async function wl(symbol, price) {
                             id: order?.orderId
                         }
 
-                        await createOrder({order: {...orderConf}}, user, order?.userId)
+                        await createOrder({order: {...orderConf}}, false, order?.userId)
 
                         console.log(`[${new Date().toLocaleTimeString('uk-UA')}] CLOSE FIXED POSITION: ${JSON.stringify(orderConf)}`)
 
