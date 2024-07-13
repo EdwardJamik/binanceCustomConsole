@@ -314,7 +314,7 @@ const PositionActive = () => {
                                                                 borderColor: '#fff'
                                                             }}
                                                             >
-                                                                {fixProfit}
+                                                                {record?.ordersId?.withoutLoss.fix ? fixProfit : 0}
                                                             </div>
                                                         </Badge.Ribbon>
                                                     </div>
