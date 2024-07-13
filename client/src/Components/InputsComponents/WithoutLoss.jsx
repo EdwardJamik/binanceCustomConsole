@@ -123,6 +123,12 @@ const WithoutLoss = () => {
                             const withousLossLong = (((parseFloat(userOption?.amount)*parseFloat(userOption?.adjustLeverage)) + (parseFloat(cross)+parseFloat(fee))) * parseFloat(price)) / (parseFloat(userOption?.amount)*parseFloat(userOption?.adjustLeverage))
                             const withousLossShort = (((parseFloat(userOption?.amount)*parseFloat(userOption?.adjustLeverage)) - (parseFloat(cross)+parseFloat(fee))) * parseFloat(price)) / (parseFloat(userOption?.amount)*parseFloat(userOption?.adjustLeverage))
 
+                            const withousLossLongProcentMax = ((((parseFloat(userOption?.amount)*parseFloat(userOption?.adjustLeverage)) * parseFloat(item?.deviation) / 100) + (parseFloat(cross)+parseFloat(fee))) * parseFloat(price)) / ((parseFloat(userOption?.amount)*parseFloat(userOption?.adjustLeverage)) * parseFloat(item?.deviation) / 100)
+                            const withousLossLongProcentMin = ((((parseFloat(userOption?.amount)*parseFloat(userOption?.adjustLeverage)) * parseFloat(item?.deviation) / 100) - (parseFloat(cross)+parseFloat(fee))) * parseFloat(price)) / ((parseFloat(userOption?.amount)*parseFloat(userOption?.adjustLeverage)) * parseFloat(item?.deviation) / 100)
+
+                            const withousLossShortProcentMax = ((((parseFloat(userOption?.amount)*parseFloat(userOption?.adjustLeverage)) * parseFloat(item?.deviation) / 100) + (parseFloat(cross)+parseFloat(fee))) * parseFloat(price)) / ((parseFloat(userOption?.amount)*parseFloat(userOption?.adjustLeverage)) * parseFloat(item?.deviation) / 100)
+                            const withousLossShortProcentMin = ((((parseFloat(userOption?.amount)*parseFloat(userOption?.adjustLeverage)) * parseFloat(item?.deviation) / 100) - (parseFloat(cross)+parseFloat(fee))) * parseFloat(price)) / ((parseFloat(userOption?.amount)*parseFloat(userOption?.adjustLeverage)) * parseFloat(item?.deviation) / 100)
+
                             return (
                                 <div key={index} style={{position: 'relative'}}>
                                     {/*{currentSize}*/}
@@ -184,9 +190,9 @@ const WithoutLoss = () => {
                                             color: '#fff'
                                         }}>
                                             {positionType ?
-                                                <>min: {(parseFloat(withousLossLong) - (parseFloat(withousLossLong) * parseFloat(item?.deviation) / 100)).toFixed(6)}<br/>max: {(parseFloat(withousLossLong) + (parseFloat(withousLossLong) * parseFloat(item?.deviation) / 100)).toFixed(6)}</>
+                                                <>min: {(parseFloat(withousLossLongProcentMin)).toFixed(6)}<br/>max: {(parseFloat(withousLossLongProcentMax)).toFixed(6)}</>
                                                 :
-                                                <>min: {(parseFloat(withousLossShort) + (parseFloat(withousLossShort) * parseFloat(item?.deviation) / 100)).toFixed(6)}<br/>max: {(parseFloat(withousLossShort) - (parseFloat(withousLossShort) * parseFloat(item?.deviation) / 100)).toFixed(6)}</>
+                                                <>min: {(parseFloat(withousLossShortProcentMin)).toFixed(6)}<br/>max: {(parseFloat(withousLossShortProcentMax)).toFixed(6)}</>
                                             }
                                        </span>
                                     </div>

@@ -86,7 +86,7 @@ export const SocketProvider = ({ children }) => {
             });
 
             socket.on("updatePositionCreated", (data) => {
-                dispatch({type: 'CURRENT_POSITION', payload: data.positionList});
+                dispatch({type: 'CURRENT_POSITION', payload: data?.positionList});
             });
 
             socket.on("updateOnePosition", (data) => {

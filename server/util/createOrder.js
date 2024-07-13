@@ -31,7 +31,7 @@ async function createOrder(orderElement, userData, id) {
         let userId = id
 
         if(!userData){
-            user = await User.findOne({token:userId})
+            user = await User.findOne({token: userId})
         } else {
             user = userData
         }

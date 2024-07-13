@@ -394,7 +394,7 @@ const PositionActive = () => {
                                     {
                                         style: {display: 'flex', paddingBottom: '16px', height: '34px'},
                                         color: (record?.ordersId?.withoutLoss ? '#f0d85a' : '#1A1A1A'),
-                                        children: <>БУ {record?.ordersId?.withoutLoss?.fixed ?
+                                        children: <>БУ {record?.ordersId?.withoutLoss?.fixed || record?.ordersId?.withoutLoss?.fix ?
                                             <span style={{color: 'rgb(14, 203, 129)'}}>FIXED</span> : ''}</>,
                                     },
                                     {

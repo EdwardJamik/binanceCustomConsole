@@ -151,7 +151,6 @@ function streamPrice(symbol,id,type_binance) {
 
 async function wl(symbol, price) {
     try {
-        console.log('WL START', symbol, price, withoutLoss[symbol]?.length)
         const currentPrice = parseFloat(price)
         const currentSymbol = symbol
 
@@ -240,7 +239,6 @@ async function wl(symbol, price) {
                 index++;
             }
         }
-        console.log('WL STOP', symbol, price)
     } catch (e) {
         console.error(e)
     }
@@ -483,20 +481,20 @@ async function closePosition(order,type) {
             side: order?.positionSide === 'LONG' ? 'SELL' : 'BUY',
             quantity: order?.q,
             type: 'MARKET',
-            id: String(order?.orderId)
         }
-        createOrder({order: {...orderConf}}, user, user?.token)
 
-        console.log(`[${new Date().toLocaleTimeString('uk-UA')}] CLOSE FIXED POSITION: ${JSON.stringify(orderConf)}`)
+        createOrder({order: {...orderConf}}, user, order?.userId)
+
+        console.log(`[${new Date().toLocaleTimeString('uk-UA')}] CLOSE FIXED POSITION: ${JSON.stringify(orderConf)}`,'USER: ',user)
 
         await Order.updateOne({
             positionsId: order?.orderId,
             userId: order?.userId,
             opened: true,
+            "positionData.executedQty": order?.q,
             currency: order?.symbol,
         }, {
-            "ordersId.withoutLoss.closed": true,
-            opened:false
+            "ordersId.withoutLoss.closed": true
         });
 
     } else {
