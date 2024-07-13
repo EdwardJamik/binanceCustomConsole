@@ -79,7 +79,6 @@ function streamPrice(symbol,id,type_binance) {
                     if(user[s]) {
                         socketServer.socketServer.io.emit('positionPrices', [`${s}`, parseFloat(p)])
 
-
                         if(withoutLoss[s]?.length)
                             wl(s,parseFloat(p))
 
@@ -111,7 +110,6 @@ function streamPrice(symbol,id,type_binance) {
 
 async function wl(symbol, price) {
     try {
-
         const currentPrice = parseFloat(price)
         const currentSymbol = symbol
 
@@ -120,10 +118,16 @@ async function wl(symbol, price) {
             let index = 0;
             for (const order of withoutLoss[symbol]) {
 
-                const precent = parseFloat(order?.q) * parseFloat(price) * parseFloat(order?.commissionPrecent)
-                const profit = (((parseFloat(price) - parseFloat(order?.startPrice)) * parseFloat(order?.q))) - (precent + parseFloat(order?.commission))
+                let precent = 0, profit = 0
+                if (order?.positionSide === 'LONG') {
+                    precent = parseFloat(order?.q) * parseFloat(price) * parseFloat(order?.commissionPrecent)
+                    profit = (((parseFloat(price) - parseFloat(order?.startPrice)) * parseFloat(order?.q))) - (precent + parseFloat(order?.commission))
+                } else {
+                    precent = parseFloat(order?.q) * parseFloat(price) * parseFloat(order?.commissionPrecent)
+                    profit = ((((parseFloat(order?.startPrice) - parseFloat(price)) * parseFloat(order?.q)) - (precent + parseFloat(order?.commission))))
+                }
 
-                console.log('PROFIT -> ',profit," ID: ",order?.orderId)
+                console.log('PRICE -> ', price ,'PROFIT -> ', profit ," ID: ",order?.orderId)
 
                 if(profit){
                     if (!order?.fix && !order?.fixDeviation && parseFloat(order?.fixedPrice) <= parseFloat(profit)) {
@@ -261,7 +265,7 @@ async function ch(symbol, price) {
                         id: String(order?.orderId)
                     }
 
-                    await createOrder({order: {orderConf}}, false, order?.userId)
+                    // await createOrder({order: {orderConf}}, false, order?.userId)
                     trailingCh[currentSymbol].splice(index, 1);
                     console.log(trailingCh[currentSymbol])
 
@@ -308,7 +312,6 @@ function addTrailing(settings){
 
 async function closePosition(order,type) {
     if(type) {
-        const user = await User.findOne({_id: order?.userId})
         const orderConf = {
             symbol: order?.symbol,
             positionSide: order?.positionSide,
@@ -317,6 +320,8 @@ async function closePosition(order,type) {
             type: 'MARKET',
             id: order?.orderId
         }
+
+        const user = await User.findOne({_id: order?.userId})
 
         createOrder({order: {...orderConf}}, user, order?.userId)
 

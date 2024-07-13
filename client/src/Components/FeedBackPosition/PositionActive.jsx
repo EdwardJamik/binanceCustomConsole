@@ -242,7 +242,6 @@ const PositionActive = () => {
                         }
                         {record.positionData.positionSide === 'SHORT' &&
                             (() => {
-
                                 const precent = parseFloat(record?.positionData?.origQty) * parseFloat(positionsPrices[record?.positionData?.symbol]) * parseFloat(record?.openedConfig?.commission)
                                 const profit = ((((parseFloat(record?.startPrice) - parseFloat(positionsPrices[record?.positionData?.symbol])) * parseFloat(record?.positionData?.origQty)) - (precent + parseFloat(record?.commission)))).toFixed(2)
                                 const procent = ((((parseFloat(record?.startPrice) - parseFloat(positionsPrices[record?.positionData?.symbol])) / parseFloat(record?.startPrice))) * 100 * parseFloat(record?.leverage) - (precent + parseFloat(record?.commission))).toFixed(2);
