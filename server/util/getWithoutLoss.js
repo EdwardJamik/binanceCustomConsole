@@ -16,8 +16,8 @@ function getWithoutLoss (order, user, querySkeleton, prevOrder){
                     fix: false,
                     fixDeviation:false,
                     fixedPrice: parseFloat(order?.withoutLoss?.option?.price),
-                    minDeviation: (parseFloat(order?.withoutLoss?.option?.price) + (parseFloat(order?.withoutLoss?.option?.deviation) * parseFloat(order?.withoutLoss?.option?.price) / 100)).toFixed(6),
-                    maxDeviation: (parseFloat(order?.withoutLoss?.option?.price) - (parseFloat(order?.withoutLoss?.option?.deviation) * parseFloat(order?.withoutLoss?.option?.price) / 100)).toFixed(6),
+                    minDeviation: parseFloat(order?.withoutLoss?.option?.price) + (parseFloat(order?.withoutLoss?.option?.deviation) * parseFloat(order?.withoutLoss?.option?.price) / 100),
+                    maxDeviation: parseFloat(order?.withoutLoss?.option?.price) - (parseFloat(order?.withoutLoss?.option?.deviation) * parseFloat(order?.withoutLoss?.option?.price) / 100),
                     startPrice: querySkeleton?.avgPrice,
                     commission: (parseFloat(currentSize)*parseFloat(order?.leverage))*parseFloat(querySkeleton?.avgPrice)*(parseFloat(order?.withoutLoss?.option?.commission)),
                     commissionPrecent: order?.commission
