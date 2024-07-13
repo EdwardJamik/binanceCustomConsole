@@ -65,7 +65,7 @@ async function createOrder(orderElement, userData, id) {
                         symbol: pair,
                         positionSide: order?.positionSide,
                         side: order?.side,
-                        quantity: qty,
+                        quantity: `${qty}`,
                         type: 'MARKET'
                     }));
 
@@ -79,7 +79,7 @@ async function createOrder(orderElement, userData, id) {
                     symbol: order?.symbol,
                     positionSide: order?.positionSide,
                     side: order?.side,
-                    quantity: qty,
+                    quantity: `${qty}`,
                     type: 'MARKET'
                 }, user)
 
@@ -87,7 +87,7 @@ async function createOrder(orderElement, userData, id) {
                     symbol: order?.symbol,
                     positionSide: order?.positionSide,
                     side: order?.side,
-                    quantity: qty,
+                    quantity: `${qty}`,
                     type: 'MARKET'
                 },{...TAKE_PROFIT_MARKET}];
             } else if(side === 'SELL'){
@@ -97,7 +97,7 @@ async function createOrder(orderElement, userData, id) {
                     symbol: order?.symbol,
                     positionSide: order?.positionSide,
                     side: order?.side,
-                    quantity: qty,
+                    quantity: `${qty}`,
                     type: 'MARKET'
                 }, user)
 
@@ -105,7 +105,7 @@ async function createOrder(orderElement, userData, id) {
                     symbol: order?.symbol,
                     positionSide: order?.positionSide,
                     side: order?.side,
-                    quantity: qty,
+                    quantity: `${qty}`,
                     type: 'MARKET'
                 },{...TAKE_PROFIT_MARKET}];
             }

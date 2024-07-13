@@ -1,11 +1,12 @@
 function getTrailingCH (order, user, querySkeleton, prevOrder) {
     try {
         console.log('CH->>>>', order, querySkeleton, prevOrder)
+        const currentSize =  parseFloat(querySkeleton?.executedQty)/parseFloat(order?.leverage)
 
         let skeletonTrailing = {
             orderId: querySkeleton?.orderId,
             userId: String(user?._id),
-            q: querySkeleton?.executedQty,
+            q: parseFloat(querySkeleton?.executedQty),
             positionSide: querySkeleton?.positionSide,
             symbol: querySkeleton?.symbol,
             price: parseFloat(querySkeleton?.avgPrice),
@@ -17,7 +18,10 @@ function getTrailingCH (order, user, querySkeleton, prevOrder) {
             lastPrice: parseFloat(order?.trailing?.option[order?.trailing?.option?.length - 1]?.price),
             lastDeviation: parseFloat(order?.trailing?.option[order?.trailing?.option?.length - 1]?.deviation),
             isPriceType: order?.trailing?.option[order?.trailing?.option?.length - 1]?.isPriceType !== 'fixed',
-            isDeviationType: true
+            isDeviationType: true,
+            startPrice: parseFloat(querySkeleton?.avgPrice),
+            commission: (parseFloat(currentSize)*parseFloat(order?.leverage))*parseFloat(querySkeleton?.avgPrice)*(parseFloat(order?.withoutLoss?.option?.commission)),
+            commissionPrecent: order?.commission
         }
 
         let i = 0

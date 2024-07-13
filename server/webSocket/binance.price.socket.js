@@ -119,10 +119,9 @@ function streamPrice(symbol,id,type_binance) {
                         socketServer.socketServer.io.emit('positionPrices', [`${s}`, parseFloat(p)])
 
 
-                        console.log('WL ->>>>>>>>>>',withoutLoss[s]?.length)
                         if(withoutLoss[s]?.length)
                             wl(s,parseFloat(p))
-                        console.log('WL ->>>>>>>>>>',trailingCh[s]?.length)
+
                         if(trailingCh[s]?.length)
                             ch(s,parseFloat(p))
                     }
@@ -151,6 +150,7 @@ function streamPrice(symbol,id,type_binance) {
 
 async function wl(symbol, price) {
     try {
+
         const currentPrice = parseFloat(price)
         const currentSymbol = symbol
 
@@ -159,81 +159,67 @@ async function wl(symbol, price) {
             let index = 0;
             for (const order of withoutLoss[symbol]) {
 
-                if (!order?.fix && !order?.fixDeviation && parseFloat(order?.fixedPrice) <= currentPrice && order?.positionSide === 'LONG' ||
-                    !order?.fix && !order?.fixDeviation && parseFloat(order?.fixedPrice) >= currentPrice && order?.positionSide === 'SHORT') {
+                const precent = parseFloat(order?.q) * parseFloat(price) * parseFloat(order?.commissionPrecent)
+                const profit = ((((parseFloat(price) - parseFloat(order?.startPrice)) * parseFloat(order?.q))) - (precent + parseFloat(order?.commission))).toFixed(2)
 
-                    await fixedPosition(order, true)
+                console.log('PROFIT ->>',profit)
+                if(profit){
+                    if (!order?.fix && !order?.fixDeviation && parseFloat(order?.fixedPrice) <= profit && order?.positionSide === 'LONG' ||
+                        !order?.fix && !order?.fixDeviation && parseFloat(order?.fixedPrice) >= profit && order?.positionSide === 'SHORT') {
 
-                    withoutLoss[currentSymbol][index].fix = true;
-                    if (order?.positionSide === 'LONG')
-                        console.log(`LONG -> FIXED price: ${currentPrice} || ${order?.orderId}`, parseFloat(order?.fixedPrice) <= currentPrice, parseFloat(order?.fixedPrice), '<=', currentPrice);
-                    else
-                        console.log(`SHORT -> FIXED price: ${currentPrice} || ${order?.orderId}`, parseFloat(order?.fixedPrice) >= currentPrice, parseFloat(order?.fixedPrice), '>=', currentPrice);
-                }
+                        await fixedPosition(order, true)
 
-                if (order?.fix && !order?.fixDeviation && parseFloat(order?.minDeviation) >= currentPrice && order?.positionSide === 'LONG' ||
-                    order?.fix && !order?.fixDeviation && parseFloat(order?.minDeviation) <= currentPrice && order?.positionSide === 'SHORT') {
-                    // Якщо мінімальний поріг більше ніж ціна
+                        withoutLoss[currentSymbol][index].fix = true;
+                        if (order?.positionSide === 'LONG')
+                            console.log(`LONG -> FIXED price: ${profit} || ${order?.orderId}`, parseFloat(order?.fixedPrice) <= profit, parseFloat(order?.fixedPrice), '<=', profit);
+                        else
+                            console.log(`SHORT -> FIXED price: ${profit} || ${order?.orderId}`, parseFloat(order?.fixedPrice) >= profit, parseFloat(order?.fixedPrice), '>=', profit);
+                    }
 
-                    await closePosition(order, true)
+                    if (order?.fix && !order?.fixDeviation && parseFloat(order?.minDeviation) >= profit && order?.positionSide === 'LONG' ||
+                        order?.fix && !order?.fixDeviation && parseFloat(order?.minDeviation) <= profit && order?.positionSide === 'SHORT') {
+                        // Якщо мінімальний поріг більше ніж ціна
 
-                    // const orderConf = {
-                    //     symbol: currentSymbol,
-                    //     positionSide: order?.positionSide,
-                    //     side: order?.positionSide === 'LONG' ? 'SELL' : 'BUY',
-                    //     quantity: order?.q,
-                    //     type: 'MARKET',
-                    //     id: String(order?.orderId)
-                    // }
-                    //
-                    // createOrder({order: {orderConf}}, false, order?.userId)
-                    withoutLoss[currentSymbol].splice(index, 1);
+                        await closePosition(order, true)
 
-                    if (order?.positionSide === 'LONG')
-                        console.log(`LONG -> CLOSE ORDER fixDeviation price: ${currentPrice} || ${order?.orderId}`, parseFloat(order?.minDeviation) >= currentPrice, parseFloat(order?.fixedPrice), '>=', currentPrice);
-                    else
-                        console.log(`SHORT -> CLOSE ORDER fixDeviation price: ${currentPrice} || ${order?.orderId}`, parseFloat(order?.minDeviation) <= currentPrice, parseFloat(order?.fixedPrice), '<=', currentPrice);
+                        withoutLoss[currentSymbol].splice(index, 1);
 
-                }
+                        if (order?.positionSide === 'LONG')
+                            console.log(`LONG -> CLOSE ORDER fixDeviation price: ${profit} || ${order?.orderId}`, parseFloat(order?.minDeviation) >= profit, parseFloat(order?.fixedPrice), '>=', profit);
+                        else
+                            console.log(`SHORT -> CLOSE ORDER fixDeviation price: ${profit} || ${order?.orderId}`, parseFloat(order?.minDeviation) <= profit, parseFloat(order?.fixedPrice), '<=', profit);
 
-                if (order?.fix && !order?.fixDeviation && parseFloat(order?.maxDeviation) <= currentPrice && order?.positionSide === 'LONG' ||
-                    order?.fix && !order?.fixDeviation && parseFloat(order?.maxDeviation) >= currentPrice && order?.positionSide === 'SHORT') {
-                    // Вимкнення мінімального порогу
+                    }
 
-                    await deviationFixedPosition(order, true)
-                    withoutLoss[currentSymbol][index].fixDeviation = true;
-                    // console.log(`fixDeviation ${order?.orderId}`, parseFloat(order?.maxDeviation) <= currentPrice, parseFloat(order?.maxDeviation), '<=', currentPrice);
+                    if (order?.fix && !order?.fixDeviation && parseFloat(order?.maxDeviation) <= profit && order?.positionSide === 'LONG' ||
+                        order?.fix && !order?.fixDeviation && parseFloat(order?.maxDeviation) >= profit && order?.positionSide === 'SHORT') {
+                        // Вимкнення мінімального порогу
 
-                    if (order?.positionSide === 'LONG')
-                        console.log(`LONG -> fixDeviation price: ${currentPrice} || ${order?.orderId}`, parseFloat(order?.maxDeviation) <= currentPrice, parseFloat(order?.maxDeviation), '<=', currentPrice);
-                    else
-                        console.log(`SHORT -> fixDeviation price: ${currentPrice} || ${order?.orderId}`, parseFloat(order?.maxDeviation) >= currentPrice, parseFloat(order?.maxDeviation), '>=', currentPrice);
+                        await deviationFixedPosition(order, true)
+                        withoutLoss[currentSymbol][index].fixDeviation = true;
 
-                }
+                        if (order?.positionSide === 'LONG')
+                            console.log(`LONG -> fixDeviation price: ${profit} || ${order?.orderId}`, parseFloat(order?.maxDeviation) <= profit, parseFloat(order?.maxDeviation), '<=', profit);
+                        else
+                            console.log(`SHORT -> fixDeviation price: ${profit} || ${order?.orderId}`, parseFloat(order?.maxDeviation) >= profit, parseFloat(order?.maxDeviation), '>=', profit);
 
-                if (order?.fix && order?.fixDeviation && parseFloat(order?.fixedPrice) >= currentPrice && order?.positionSide === 'LONG' ||
-                    order?.fix && order?.fixDeviation && parseFloat(order?.fixedPrice) <= currentPrice && order?.positionSide === 'SHORT') {
-                    // Якщо ціна фікс ціна більше ніж поточна ціна
+                    }
 
-                    // console.log(`CLOSE ORDER ${order?.orderId}`, parseFloat(order?.fixPrice) >= currentPrice, parseFloat(order?.fixPrice), '>=', currentPrice);
+                    if (order?.fix && order?.fixDeviation && parseFloat(order?.fixedPrice) >= profit && order?.positionSide === 'LONG' ||
+                        order?.fix && order?.fixDeviation && parseFloat(order?.fixedPrice) <= profit && order?.positionSide === 'SHORT') {
+                        // Якщо ціна фікс ціна більше ніж поточна ціна
 
-                    await closePosition(order, true)
-                    // const orderConf = {
-                    //     symbol: currentSymbol,
-                    //     positionSide: order?.positionSide,
-                    //     side: order?.positionSide === 'LONG' ? 'SELL' : 'BUY',
-                    //     quantity: order?.q,
-                    //     type: 'MARKET',
-                    //     id: String(order?.orderId)
-                    // }
-                    //
-                    // createOrder({order: {orderConf}}, false, order?.userId)
-                    withoutLoss[currentSymbol].splice(index, 1);
+                        // console.log(`CLOSE ORDER ${order?.orderId}`, parseFloat(order?.fixPrice) >= currentPrice, parseFloat(order?.fixPrice), '>=', currentPrice);
 
-                    if (order?.positionSide === 'LONG')
-                        console.log(`LONG -> CLOSE ORDER price: ${currentPrice} || ${order?.orderId}`, parseFloat(order?.fixedPrice) >= currentPrice, parseFloat(order?.fixedPrice), '>=', currentPrice);
-                    else
-                        console.log(`SHORT -> CLOSE ORDER price: ${currentPrice} || ${order?.orderId}`, parseFloat(order?.fixedPrice) <= currentPrice, parseFloat(order?.fixedPrice), '<=', currentPrice);
+                        await closePosition(order, true)
+
+                        withoutLoss[currentSymbol].splice(index, 1);
+
+                        if (order?.positionSide === 'LONG')
+                            console.log(`LONG -> CLOSE ORDER price: ${profit} || ${order?.orderId}`, parseFloat(order?.fixedPrice) >= profit, parseFloat(order?.fixedPrice), '>=', profit);
+                        else
+                            console.log(`SHORT -> CLOSE ORDER price: ${profit} || ${order?.orderId}`, parseFloat(order?.fixedPrice) <= profit, parseFloat(order?.fixedPrice), '<=', profit);
+                    }
                 }
 
                 index++;
@@ -338,114 +324,6 @@ async function ch(symbol, price) {
     }
 }
 
-
-// async function fixedWithouLoss(symbol,price,orders) {
-//     try {
-//
-//         // const findOrder = await Order.find({
-//         //     opened: true,
-//         //     currency: symbol,
-//         //     "ordersId.withoutLoss.status": true,
-//         // })
-//
-//         for (const order of orders) {
-//
-//             if (order?.positionSide === 'LONG') {
-//                 if (!order?.fix && parseFloat(order?.fixPrice) <= parseFloat(price)) {
-//
-//                     await Order.updateOne({
-//                         _id: order?.orderId,
-//                         opened: true,
-//                         currency: symbol,
-//                         "ordersId.withoutLoss.fixed": false,
-//                     }, {
-//                         "ordersId.withoutLoss.fixed": true
-//                     });
-//
-//                     console.log(`[${new Date().toLocaleTimeString('uk-UA')}] FIXED POSITION: ${JSON.stringify(order)}`)
-//                     const user = await User.findOne({_id: order?.userId})
-//
-//                     const orders = await Order.find({
-//                         userId: user?._id,
-//                         opened: true
-//                     }).sort({createdAt: -1})
-//
-//                     const modifiedOrders = orders.map(order => {
-//                         const {_id, ...rest} = order.toObject();
-//                         return {key: _id, ...rest};
-//                     });
-//
-//                     socketServer.socketServer.io.to(user?.token).emit('updatePositionCreated', {
-//                         positionList: modifiedOrders,
-//                     });
-//
-//                 } else if (order?.fix && parseFloat(order?.fixPrice) > parseFloat(price)) {
-//                     const user = await User.findOne({_id: order?.userId})
-//
-//                     await Order.updateOne({_id: order?.orderId}, {opened: false})
-//
-//                     const orderConf = {
-//                         symbol: order?.symbol,
-//                         positionSide: order?.positionSide,
-//                         side: order?.positionSide === 'LONG' ? 'SELL' : 'BUY',
-//                         quantity: order?.quantity,
-//                         type: 'MARKET',
-//                         id: String(order?.orderId)
-//                     }
-//
-//                     console.log(`[${new Date().toLocaleTimeString('uk-UA')}] CLOSE FIXED POSITION: ${JSON.stringify(orderConf)}`)
-//                     await createOrder({order: {...orderConf}}, user, user?.token)
-//                     // console.log('FIXED CLOSE')
-//                 }
-//             } else if (order?.openedConfig?.positionSide === 'SHORT') {
-//                 if (!order?.fix && parseFloat(order?.fix) >= parseFloat(price)) {
-//                     await Order.updateOne({
-//                         _id: order?.orderId,
-//                         opened: true,
-//                         currency: symbol,
-//                         "ordersId.withoutLoss.fixed": false,
-//                     }, {
-//                         "ordersId.withoutLoss.fixed": true
-//                     });
-//
-//                     console.log(`[${new Date().toLocaleTimeString('uk-UA')}] FIXED POSITION: ${JSON.stringify(order)}`)
-//                     const user = await User.findOne({_id: order?.userId})
-//
-//                     const orders = await Order.find({
-//                         userId: user?._id,
-//                         opened: true
-//                     }).sort({createdAt: -1})
-//
-//                     const modifiedOrders = orders.map(order => {
-//                         const {_id, ...rest} = order.toObject();
-//                         return {key: _id, ...rest};
-//                     });
-//
-//                     socketServer.socketServer.io.to(user?.token).emit('updatePositionCreated', {
-//                         positionList: modifiedOrders,
-//                     });
-//                 } else if (order?.ordersId?.withoutLoss?.fixed && parseFloat(order?.ordersId?.withoutLoss?.fixedPrice) < parseFloat(price)) {
-//                     const user = await User.findOne({_id: order?.userId})
-//                     await Order.updateOne({_id: order?._id}, {opened: false})
-//
-//                     const orderConf = {
-//                         symbol: order?.openedConfig?.symbol,
-//                         positionSide: order?.openedConfig?.positionSide,
-//                         side: order?.openedConfig?.positionSide === 'LONG' ? 'SELL' : 'BUY',
-//                         quantity: order?.openedConfig?.quantity,
-//                         type: 'MARKET',
-//                         id: String(order?._id)
-//                     }
-//                     console.log(`[${new Date().toLocaleTimeString('uk-UA')}] CLOSE FIXED POSITION: ${JSON.stringify(orderConf)}`)
-//                     await createOrder({order: {...orderConf}}, user, user?.token)
-//                 }
-//             }
-//         }
-//     } catch (e) {
-//         console.error(e)
-//     }
-// }
-
 function addwithoutLoss(settings){
     if(withoutLoss[settings?.symbol]){
         withoutLoss[settings?.symbol].push({...settings})
@@ -490,12 +368,11 @@ async function closePosition(order,type) {
         await Order.updateOne({
             positionsId: order?.orderId,
             userId: order?.userId,
-            opened: true,
-            "positionData.executedQty": order?.q,
-            currency: order?.symbol,
         }, {
             "ordersId.withoutLoss.closed": true
         });
+
+
 
     } else {
 
