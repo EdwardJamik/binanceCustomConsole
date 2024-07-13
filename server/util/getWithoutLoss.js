@@ -22,7 +22,7 @@ function getWithoutLoss (order, user, querySkeleton, prevOrder){
                 withoutLoss: {
                     orderId: querySkeleton?.orderId,
                     userId: String(user?._id),
-                    q: querySkeleton?.cumQuote,
+                    q: parseFloat(querySkeleton?.executedQty),
                     positionSide: querySkeleton?.positionSide,
                     symbol: querySkeleton?.symbol,
                     fix: false,
@@ -51,7 +51,7 @@ function getWithoutLoss (order, user, querySkeleton, prevOrder){
                 withoutLoss: {
                     orderId: querySkeleton?.orderId,
                     userId: String(user?._id),
-                    q: querySkeleton?.cumQuote,
+                    q: parseFloat(querySkeleton?.executedQty),
                     positionSide: querySkeleton?.positionSide,
                     symbol: querySkeleton?.symbol,
                     fix: false,

@@ -554,12 +554,12 @@ async function fixedPosition(order,type) {
             opened: true
         }).sort({createdAt: -1})
 
-        const modifiedOrders = orders.map(order => {
+        const modifiedOrders = orders?.map(order => {
             const {_id, ...rest} = order.toObject();
             return {key: _id, ...rest};
         });
 
-        socketServer.socketServer.io.to(order?.userId).emit('updatePositionCreated', {
+        socketServer.socketServer.io.to(String(order?.userId)).emit('updatePositionCreated', {
             positionList: modifiedOrders,
         });
     } else {
