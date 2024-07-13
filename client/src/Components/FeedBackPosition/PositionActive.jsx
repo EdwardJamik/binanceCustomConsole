@@ -172,7 +172,7 @@ const PositionActive = () => {
                                                                 borderColor: '#fff'
                                                             }}
                                                             >
-                                                                {fixProfit}
+                                                                {record?.ordersId?.withoutLoss.fix ? fixProfit : 0}
                                                             </div>
                                                         </Badge.Ribbon>
                                                     </div>
@@ -519,7 +519,7 @@ const PositionActive = () => {
                                                 <Button danger onClick={() => closePosition({
                                                     ...record.openedConfig,
                                                     quantity: record?.positionData?.executedQty,
-                                                    id: record.key
+                                                    id: record?.positionData?.orderId
                                                 })}>
                                                     Закрыть позицию
                                                 </Button>

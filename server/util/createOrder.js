@@ -232,7 +232,7 @@ async function createOrder(orderElement, userData, id) {
 
                         getMultipleOrderDetails(responseBatch?.data, key_1, key_2, user?.binance_test).then(async (response) => {
 
-                            const updatedOrder = await Order.findOneAndUpdate({_id: order?.id}, {
+                            const updatedOrder = await Order.findOneAndUpdate({positionsId: order?.id}, {
                                     ClosePositionData: response[0],
                                     opened: false
                                 },
