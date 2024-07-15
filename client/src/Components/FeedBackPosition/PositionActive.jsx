@@ -101,7 +101,7 @@ const PositionActive = () => {
                                 const precent = parseFloat(record?.positionData?.origQty) * parseFloat(positionsPrices[record?.positionData?.symbol]) * parseFloat(record?.openedConfig?.commission)
                                 const profit = ((((parseFloat(positionsPrices[record?.positionData?.symbol]) - parseFloat(record?.startPrice)) * parseFloat(record?.positionData?.origQty))) - (precent + parseFloat(record?.commission))).toFixed(2)
                                 const procent = ((((parseFloat(positionsPrices[record?.positionData?.symbol]) - parseFloat(record?.startPrice)) / parseFloat(record?.startPrice))) * 100 * parseFloat(record?.leverage) - (precent + parseFloat(record?.commission))).toFixed(2);
-                                const fixProfit = record?.ordersId?.withoutLoss?.fix && !record?.ordersId?.TRAILING_STOP_MARKET?.fix ? parseFloat(record?.ordersId?.withoutLoss?.fixedPrice) : record?.ordersId?.TRAILING_STOP_MARKET?.fix ? record?.ordersId?.TRAILING_STOP_MARKET?.arrayPrice[record?.ordersId?.TRAILING_STOP_MARKET?.index] : record?.ordersId?.TAKE_PROFIT_MARKET ? ((((parseFloat(record?.ordersId?.TAKE_PROFIT_MARKET?.stopPrice) - parseFloat(record?.startPrice)) * ((parseFloat(record?.openedConfig?.quantity)))))).toFixed(2) : 0
+                                const fixProfit = record?.ordersId?.withoutLoss?.fix && !record?.ordersId?.TRAILING_STOP_MARKET?.fix ? parseFloat(record?.ordersId?.withoutLoss?.fixedPrice) : record?.ordersId?.TRAILING_STOP_MARKET?.fix ? record?.ordersId?.TRAILING_STOP_MARKET?.price : record?.ordersId?.TAKE_PROFIT_MARKET ? ((((parseFloat(record?.ordersId?.TAKE_PROFIT_MARKET?.stopPrice) - parseFloat(record?.startPrice)) * ((parseFloat(record?.openedConfig?.quantity)))))).toFixed(2) : 0
 
                                 return !isNaN(profit) || !isNaN(procent) ?
                                     <div style={{
@@ -243,7 +243,7 @@ const PositionActive = () => {
                                 const precent = parseFloat(record?.positionData?.origQty) * parseFloat(positionsPrices[record?.positionData?.symbol]) * parseFloat(record?.openedConfig?.commission)
                                 const profit = ((((parseFloat(record?.startPrice) - parseFloat(positionsPrices[record?.positionData?.symbol])) * parseFloat(record?.positionData?.origQty)) - (precent + parseFloat(record?.commission)))).toFixed(2)
                                 const procent = ((((parseFloat(record?.startPrice) - parseFloat(positionsPrices[record?.positionData?.symbol])) / parseFloat(record?.startPrice))) * 100 * parseFloat(record?.leverage) - (precent + parseFloat(record?.commission))).toFixed(2);
-                               const fixProfit = record?.ordersId?.withoutLoss?.fix && !record?.ordersId?.TRAILING_STOP_MARKET?.fix ? parseFloat(record?.ordersId?.withoutLoss?.fixedPrice) : record?.ordersId?.TRAILING_STOP_MARKET?.fix ? record?.ordersId?.TRAILING_STOP_MARKET?.arrayPrice[record?.ordersId?.TRAILING_STOP_MARKET?.index] : record?.ordersId?.TAKE_PROFIT_MARKET ? ((((parseFloat(record?.ordersId?.TAKE_PROFIT_MARKET?.stopPrice) - parseFloat(record?.startPrice)) * ((parseFloat(record?.openedConfig?.quantity)))))).toFixed(2) : 0
+                               const fixProfit = record?.ordersId?.withoutLoss?.fix && !record?.ordersId?.TRAILING_STOP_MARKET?.fix ? parseFloat(record?.ordersId?.withoutLoss?.fixedPrice) : record?.ordersId?.TRAILING_STOP_MARKET?.fix ? record?.ordersId?.TRAILING_STOP_MARKET?.price : record?.ordersId?.TAKE_PROFIT_MARKET ? ((((parseFloat(record?.ordersId?.TAKE_PROFIT_MARKET?.stopPrice) - parseFloat(record?.startPrice)) * ((parseFloat(record?.openedConfig?.quantity)))))).toFixed(2) : 0
 
                                 return !isNaN(profit) || !isNaN(procent) ?
                                     <div style={{
@@ -511,7 +511,7 @@ const PositionActive = () => {
                                                         marginRight: '16px'
                                                     }} onClick={() => closeOrder({
                                                         ...record.openedConfig,
-                                                        quantity: record?.positionData?.executedQty,
+                                                        // quantity: record?.positionData?.executedQty,
                                                         id: record.key
                                                     })}>
                                                         Отключить macd
@@ -521,7 +521,7 @@ const PositionActive = () => {
                                                 }
                                                 <Button danger onClick={() => closePosition({
                                                     ...record.openedConfig,
-                                                    quantity: record?.positionData?.executedQty,
+                                                    // quantity: record?.positionData?.executedQty,
                                                     id: record?.positionData?.orderId
                                                 })}>
                                                     Закрыть позицию
@@ -537,8 +537,8 @@ const PositionActive = () => {
                                                 marginTop: '10px'
                                             }}>
                                                 <span style={{margin: '0 auto'}}>Комиссия открытия: {parseFloat(record?.commission).toFixed(6)}<br/>Комиссия закрытия: {((record?.positionData?.origQty * parseFloat(positionsPrices[record?.positionData?.symbol])) * record?.openedConfig?.commission).toFixed(6)}</span>
-                                                {record?.ordersId?.withoutLoss ? <span style={{margin: '0 auto'}}><h4 style={{color:'#fff',margin: '0 0 4px'}}>БУ</h4>Фикс цена: {parseFloat(record?.ordersId?.withoutLoss?.fixedPrice).toFixed(6)}<br/>MIN отклонение: {parseFloat(record?.ordersId?.withoutLoss?.minDeviation).toFixed(6)}<br/>MAX отклонение: {parseFloat(record?.ordersId?.withoutLoss?.maxDeviation).toFixed(6)}</span> : <></>}
-                                                {record?.ordersId?.TRAILING_STOP_MARKET ? <span style={{margin: '0 auto'}}><h4 style={{color:'#fff',margin: '0 0 4px'}}>CH</h4>Фикс: {JSON.stringify(record?.ordersId?.TRAILING_STOP_MARKET?.arrayPrice)}<br/>Отклонение: {JSON.stringify(record?.ordersId?.TRAILING_STOP_MARKET?.arrayDeviation)}</span> : <></>}
+                                                {record?.ordersId?.withoutLoss?.orderId ? <span style={{margin: '0 auto'}}><h4 style={{color:'#fff',margin: '0 0 4px'}}>БУ</h4>Фикс цена: {parseFloat(record?.ordersId?.withoutLoss?.fixedPrice).toFixed(6)}<br/>MIN отклонение: {parseFloat(record?.ordersId?.withoutLoss?.minDeviation).toFixed(6)}<br/>MAX отклонение: {parseFloat(record?.ordersId?.withoutLoss?.maxDeviation).toFixed(6)}</span> : <></>}
+                                                {record?.ordersId?.TRAILING_STOP_MARKET?.orderId ? <span style={{margin: '0 auto'}}><h4 style={{color:'#fff',margin: '0 0 4px'}}>CH</h4>Фикс: {JSON.stringify(record?.ordersId?.TRAILING_STOP_MARKET?.arrayPrice)}<br/>Отклонение: {JSON.stringify(record?.ordersId?.TRAILING_STOP_MARKET?.arrayDeviation)}</span> : <></>}
                                             </div>
                                         </div>
                                     ),

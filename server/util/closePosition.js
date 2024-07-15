@@ -45,7 +45,6 @@ async function closePosition(order, userId, key_1, key_2, binance_test) {
                 headers,
             }).then(async (responseBatch) => {
 
-                console.log('CLOSED INFO: ', responseBatch)
                 if (responseBatch && !responseBatch?.data[0]?.msg) {
 
                     getMultipleOrderDetails(responseBatch?.data, key_1, key_2, binance_test).then(async (response) => {
