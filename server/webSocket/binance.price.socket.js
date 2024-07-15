@@ -196,7 +196,6 @@ async function ch(symbol, price) {
 
                     if (parseFloat(order?.price) <= profit) {
                         // Перехід на новий рівень
-
                         if(trailingCh[currentSymbol][index]?.fix !== true)
                             trailingCh[currentSymbol][index] = {...trailingCh[currentSymbol][index], fix:true}
 

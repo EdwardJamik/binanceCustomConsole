@@ -71,7 +71,8 @@ const TrailingCh = () => {
                 onChange={(value) => handleTypeChange(value, index, type === 'price' ? 'isPriceType' : 'isDeviationType')}
             >
                 {type === 'price' ?  <Option default value="fixed">$</Option> : <></> }
-                <Option value="percent">%</Option>
+                {type === 'deviation' ?   <Option value="percent">%</Option> : <></> }
+
             </Select>
         )
     }
