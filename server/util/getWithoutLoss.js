@@ -1,6 +1,6 @@
-function getWithoutLoss (order, user, querySkeleton, prevOrder){
+function getWithoutLoss (order, user, querySkeleton, prevOrder, key_1, key_2, binance_test){
     try {
-        console.log('WITHOUTLOSS ->>>>>>>>>>>>>> ',order,querySkeleton)
+
         const currentSize =  parseFloat(querySkeleton?.executedQty)/parseFloat(order?.leverage)
 
         if(order?.positionSide === 'SHORT'){
@@ -20,7 +20,8 @@ function getWithoutLoss (order, user, querySkeleton, prevOrder){
                     maxDeviation: parseFloat(order?.withoutLoss?.option?.price) - (parseFloat(order?.withoutLoss?.option?.deviation) * parseFloat(order?.withoutLoss?.option?.price) / 100),
                     startPrice: querySkeleton?.avgPrice,
                     commission: (parseFloat(currentSize)*parseFloat(order?.leverage))*parseFloat(querySkeleton?.avgPrice)*(parseFloat(order?.withoutLoss?.option?.commission)),
-                    commissionPrecent: order?.commission
+                    commissionPrecent: order?.commission,
+                    key_1, key_2, binance_test
                 }
             }
 
@@ -41,7 +42,8 @@ function getWithoutLoss (order, user, querySkeleton, prevOrder){
                     maxDeviation: (parseFloat(order?.withoutLoss?.option?.price) + (parseFloat(order?.withoutLoss?.option?.deviation) * parseFloat(order?.withoutLoss?.option?.price) / 100)).toFixed(6),
                     startPrice: parseFloat(querySkeleton?.avgPrice),
                     commission: (parseFloat(currentSize)*parseFloat(order?.leverage))*parseFloat(querySkeleton?.avgPrice)*(parseFloat(order?.withoutLoss?.option?.commission)),
-                    commissionPrecent: order?.commission
+                    commissionPrecent: order?.commission,
+                    key_1, key_2, binance_test
                 }
             }
         }

@@ -2,8 +2,7 @@ const mongoose = require("mongoose");
 
 const ordersSchema = new mongoose.Schema({
     positionsId: {
-        type: String,
-        unique: true
+        type: String
     },
     ordersId: {
         type: Object,

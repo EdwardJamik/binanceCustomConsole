@@ -203,12 +203,12 @@ const PositionBefore = () => {
                                     },
                                     {
                                         style: {display: 'flex', paddingBottom: '16px', height: '34px'},
-                                        color: (record?.ordersId?.withoutLoss ? '#f0d85a' : '#1A1A1A'),
+                                        color: (record?.ordersId?.withoutLoss ? record?.ordersId?.withoutLoss?.closed ? 'rgb(14, 203, 129)' : '#f0d85a' : '#1A1A1A'),
                                         children: 'БУ',
                                     },
                                     {
                                         style: {display: 'flex', paddingBottom: '16px', height: '34px'},
-                                        color: (record?.ordersId?.TRAILING_STOP_MARKET ? '#f0d85a' : '#1A1A1A'),
+                                        color: (record?.ordersId?.TRAILING_STOP_MARKET ? record?.ordersId?.TRAILING_STOP_MARKET?.closed ? 'rgb(14, 203, 129)' : '#f0d85a' : '#1A1A1A'),
                                         children: 'CH',
                                     },
                                     {

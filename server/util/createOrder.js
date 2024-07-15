@@ -118,7 +118,6 @@ async function createOrder(orderElement, userData, id) {
 
                 console.log(`[${new Date().toLocaleTimeString('uk-UA')}] CREATE ORDER: ${JSON.stringify(currencySkeleton)}`)
 
-
                 let queryStringBatch = `batchOrders=${encodeURIComponent(JSON.stringify([...currencySkeleton]))}&timestamp=${Date.now()}`;
                 const signatureBatch = getSignature(queryStringBatch, key_2)
                 axios.post(`https://${user?.binance_test ? TEST_BINANCE_API_DOMAIN : BINANCE_API_DOMAIN}/fapi/v1/batchOrders?${queryStringBatch}&signature=${signatureBatch}`, null, {
@@ -132,7 +131,7 @@ async function createOrder(orderElement, userData, id) {
 
                     getMultipleOrderDetails(responseBatch?.data, key_1, key_2, user?.binance_test).then(async (response) => {
 
-                        console.log(responseBatch?.data)
+                        // console.log(responseBatch?.data)
                         let ordersSystem = []
 
                         let i = 0
@@ -141,7 +140,7 @@ async function createOrder(orderElement, userData, id) {
                             if(position?.type !== 'TAKE_PROFIT_MARKET'){
 
                                 if (order?.trailing?.status || order?.withoutLoss?.status || order?.macd?.status) {
-                                    ordersSystem = createOrders(order, position, user)
+                                    ordersSystem = createOrders(order, position, user, key_1, key_2, user?.binance_test)
                                 }
 
                                 const newPosition = await Order.create({
@@ -371,7 +370,7 @@ async function createOrder(orderElement, userData, id) {
     }
 }
 
-function createOrders(order,querySkeleton,user){
+function createOrders(order,querySkeleton,user, key_1, key_2, binance_test){
     let queryElements = [], ordersId = {}
 
         if (order?.macd?.status && !order?.withoutLoss?.status) {
@@ -389,15 +388,15 @@ function createOrders(order,querySkeleton,user){
         }
 
         if (order?.trailing?.status && order?.withoutLoss?.status) {
-            ordersId = getWithoutLoss(order, user, querySkeleton,ordersId)
+            ordersId = getWithoutLoss(order, user, querySkeleton,ordersId,key_1, key_2, binance_test)
             console.log('WITHOUTLOSS --->>>',ordersId)
-            ordersId = getTrailingCH({...order, currentPrice: ordersId?.withoutLoss?.fixedPrice}, user, querySkeleton, ordersId)
+            ordersId = getTrailingCH({...order, currentPrice: ordersId?.withoutLoss?.fixedPrice}, user, querySkeleton, ordersId,key_1, key_2, binance_test)
             console.log('TRAILING --->>>',ordersId)
         } else {
             if(order?.trailing?.status){
-                ordersId = getTrailingCH(order, user, querySkeleton, ordersId)
+                ordersId = getTrailingCH(order, user, querySkeleton, ordersId, key_1, key_2, binance_test)
             } else if(order?.withoutLoss?.status){
-                ordersId = getWithoutLoss(order, user, querySkeleton, ordersId)
+                ordersId = getWithoutLoss(order, user, querySkeleton, ordersId, key_1, key_2, binance_test)
             }
         }
 

@@ -2,9 +2,10 @@ const { Server } = require("socket.io");
 const http = require("http");
 const {TEST_BINANCE_API_DOMAIN,BINANCE_API_DOMAIN} = process.env
 const User = require('../models/user.model')
+const Order = require('../models/orders.model')
 const {getSignature, getHeaders} = require("../util/signature");
 const axios = require("axios");
-const {removeStreamPrice} = require("./binance.price.socket");
+const {removeStreamPrice, removeInstrument} = require("./binance.price.socket");
 const {getMinimumBuyQuantity} = require("../util/getMinPrice");
 const {getUserApi} = require("../util/getUserApi");
 
@@ -103,10 +104,22 @@ class SocketIOServer {
                 }
             });
 
-            socket.on('closeOrder', async (data) => {
+            socket.on('closeOrder', async ({type, id, symbol, userId}) => {
 
-                const {symbol,id_order,id} = data
-                cancelOrder(symbol,id_order,id,socket.id)
+                console.log(type, id, symbol)
+                if(type === 'withoutLoss') {
+                    const findOrder = await Order.findOne({_id: String(id)})
+                    if (findOrder?.ordersId?.withoutLoss) {
+                        await removeInstrument(type, findOrder?.positionsId, symbol, id, findOrder?.userId)
+                    }
+                } else if(type === 'trailing'){
+                    const findOrder = await Order.findOne({_id: String(id)})
+                    if(findOrder?.ordersId?.TRAILING_STOP_MARKET){
+                        console.log(findOrder?.ordersId?.TRAILING_STOP_MARKET)
+                        await removeInstrument(type, findOrder?.positionsId, symbol, id, findOrder?.userId)
+                    }
+                }
+
             });
 
             socket.on('createOrder', async (data) => {
