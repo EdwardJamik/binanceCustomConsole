@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useCallback, useEffect, useMemo} from 'react';
 import {Badge, Button, ConfigProvider, Spin, Table, Timeline} from "antd";
 import {useSocket} from "../Socket/Socket.jsx";
 import {useDispatch, useSelector} from "react-redux";
@@ -13,28 +13,39 @@ dayjs.extend(timezone)
 
 const PositionActive = () => {
     const userTimezone = dayjs.tz.guess();
-    const socket = useSocket()
-    const positions = useSelector(state => state.positions)
-    const positionsPrices = useSelector(state => state.positionPrice)
+    const socket = useSocket();
+    const positions = useSelector(state => state.positions);
+    const positionsPrices = useSelector(state => state.positionPrice);
     const dispatch = useDispatch();
-    const user = useSelector(state => state.currentOption)
-    const commission = useSelector(state => state.commission)
 
-    const closePosition = ({symbol, positionSide, quantity, type, id}) => {
-        const order = {symbol, positionSide, side: positionSide === 'LONG' ? 'SELL' : 'BUY', quantity, type, id}
+    const closePosition = useCallback(({symbol, positionSide, quantity, type, id}) => {
+        const order = {symbol, positionSide, side: positionSide === 'LONG' ? 'SELL' : 'BUY', quantity, type, id};
         socket.emit('createOrder', {order});
-    }
+    }, [socket]);
 
-    const closeOrder = ({type, id, symbol}) => {
+    const closeOrder = useCallback(({type, id, symbol}) => {
         socket.emit('closeOrder', {type, id, symbol});
-    }
+    }, [socket]);
 
     socket.on("positionPrices", (data) => {
         const updatePrices = {...positionsPrices, [data[0]]: data[1]}
         dispatch({type: 'FILTERED_POSITION_PRICE', payload: updatePrices});
     });
 
-    const columns = [
+    useEffect(() => {
+        const handlePositionPrices = (data) => {
+            const updatePrices = {...positionsPrices, [data[0]]: data[1]};
+            dispatch({type: 'FILTERED_POSITION_PRICE', payload: updatePrices});
+        };
+
+        socket.on("positionPrices", handlePositionPrices);
+
+        return () => {
+            socket.off("positionPrices", handlePositionPrices);
+        };
+    }, [socket, dispatch, positionsPrices]);
+
+    const columns = useMemo(() => [
         {
             title: '',
             dataIndex: 'createdAt',
@@ -419,140 +430,136 @@ const PositionActive = () => {
         },
         Table.EXPAND_COLUMN,
 
-    ];
+    ], [userTimezone, positionsPrices, closePosition, closeOrder]);
+
+    const renderExpandedRow = useCallback((record) =>
+            <div>
+                <div style={{display: 'flex', justifyContent: 'flex-end', width: '100%'}}>
+                    {record?.ordersId?.TAKE_PROFIT_MARKET && !record?.ordersId?.macd && !record?.ordersId?.withoutLoss ?
+                        <Button type='primary' style={{
+                            background: 'none',
+                            border: '1px solid',
+                            marginRight: '16px'
+                        }} onClick={() => closeOrder({
+                            symbol: record?.currency,
+                            id_order: record?.ordersId?.TAKE_PROFIT_MARKET?.orderId,
+                            id: record.key
+                        })}>
+                            Отключить Take Profit
+                        </Button>
+                        :
+                        <></>
+                    }
+                    {record?.ordersId?.withoutLoss && !record?.ordersId?.macd ?
+                        <Button type='primary' style={{
+                            background: 'none',
+                            border: '1px solid',
+                            marginRight: '16px'
+                        }} onClick={() => closeOrder({
+                            type: 'withoutLoss',
+                            symbol: record?.currency,
+                            id: record.key
+                        })}>
+                            Отключить БУ
+                        </Button>
+                        :
+                        <></>
+                    }
+                    {record?.ordersId?.TRAILING_STOP_MARKET ?
+                        <Button type='primary' style={{
+                            background: 'none',
+                            border: '1px solid',
+                            marginRight: '16px'
+                        }} onClick={() => closeOrder({
+                            type: 'trailing',
+                            symbol: record?.currency,
+                            id: record.key
+                        })}>
+                            Отключить Trailing
+                        </Button>
+                        :
+                        <></>
+                    }
+                    {record?.ordersId?.macd && !record?.ordersId?.TAKE_PROFIT_MARKET && !record?.ordersId?.withoutLoss ?
+                        <Button type='primary' style={{
+                            background: 'none',
+                            border: '1px solid',
+                            marginRight: '16px'
+                        }} onClick={() => closeOrder({
+                            ...record.openedConfig,
+                            // quantity: record?.positionData?.executedQty,
+                            id: record.key
+                        })}>
+                            Отключить macd
+                        </Button>
+                        :
+                        <></>
+                    }
+                    <Button danger onClick={() => closePosition({
+                        ...record.openedConfig,
+                        // quantity: record?.positionData?.executedQty,
+                        id: record?.positionData?.orderId
+                    })}>
+                        Закрыть позицию
+                    </Button>
+                    {record.description}
+                </div>
+                <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(3,1fr)',
+                    gridTemplateRows: '1fr',
+                    gridColumnGap: '10px',
+                    gridRowGap: '10px',
+                    marginTop: '10px'
+                }}>
+                    <span style={{margin: '0 auto'}}>Комиссия открытия: {parseFloat(record?.commission).toFixed(6)}<br/>Комиссия закрытия: {((record?.positionData?.origQty * parseFloat(positionsPrices[record?.positionData?.symbol])) * record?.openedConfig?.commission).toFixed(6)}</span>
+                    {record?.ordersId?.withoutLoss?.orderId ? <span style={{margin: '0 auto'}}><h4 style={{
+                        color: '#fff',
+                        margin: '0 0 4px'
+                    }}>БУ</h4>Фикс цена: {parseFloat(record?.ordersId?.withoutLoss?.fixedPrice).toFixed(6)}<br/>MIN отклонение: {parseFloat(record?.ordersId?.withoutLoss?.minDeviation).toFixed(6)}<br/>MAX отклонение: {parseFloat(record?.ordersId?.withoutLoss?.maxDeviation).toFixed(6)}</span> : <></>}
+                    {record?.ordersId?.TRAILING_STOP_MARKET?.orderId ? <span style={{margin: '0 auto'}}><h4 style={{
+                        color: '#fff',
+                        margin: '0 0 4px'
+                    }}>CH</h4>Фикс: {JSON.stringify(record?.ordersId?.TRAILING_STOP_MARKET?.arrayPrice)}<br/>Отклонение: {JSON.stringify(record?.ordersId?.TRAILING_STOP_MARKET?.arrayDeviation)}</span> : <></>}
+                </div>
+            </div>
+        , [closeOrder, closePosition]);
 
     return (
-        <>
-            <div style={{
-                width: '100%',
-                background: '#0E0E0E',
-            }}>
-                {/*<div style={{maxWidth:'800px', width:'100%', margin:'0 auto', color: 'rgba(246, 70, 93, 0.8)', fontSize: '16px',marginBottom:'10px'}}>*/}
-                {/*    Прибыль: -0.38*/}
-                {/*</div>*/}
-
-                {positions ?
-
-                    <div style={{display: 'flex', justifyContent: 'center', margin: '0 auto', width: '100%'}}>
-                        <ConfigProvider
-                            theme={{
-                                components: {
-                                    Table: {
-                                        borderColor: 'rgb(14, 14, 14)',
-                                        colorBorderBg: 'rgb(14, 14, 14)',
-                                        headerColor: 'rgba(240, 216, 90, 0.6)',
-                                        headerSplitColor: 'rgba(240, 216, 90, 0)',
-                                    }
-
-                                },
-                                token: {
-                                    colorTextBase: '#fff',
-                                    colorBgContainer: '#0E0E0E',
-                                    colorPrimary: 'rgba(240, 216, 90, 0.2)',
-                                },
+        <div style={{width: '100%', background: '#0E0E0E'}}>
+            {positions && positions.length > 0 ? (
+                <div style={{display: 'flex', justifyContent: 'center', margin: '0 auto', width: '100%'}}>
+                    <ConfigProvider
+                        theme={{
+                            components: {
+                                Table: {
+                                    borderColor: 'rgb(14, 14, 14)',
+                                    colorBorderBg: 'rgb(14, 14, 14)',
+                                    headerColor: 'rgba(240, 216, 90, 0.6)',
+                                    headerSplitColor: 'rgba(240, 216, 90, 0)',
+                                }
+                            },
+                            token: {
+                                colorTextBase: '#fff',
+                                colorBgContainer: '#0E0E0E',
+                                colorPrimary: 'rgba(240, 216, 90, 0.2)',
+                            },
+                        }}
+                    >
+                        <Table
+                            columns={columns}
+                            dataSource={positions}
+                            pagination={false}
+                            expandable={{
+                                expandedRowRender: renderExpandedRow,
                             }}
-                        >
-                            <Table
-                                columns={columns}
-                                pagination={false}
-                                expandable={{
-                                    expandedRowRender: (record) => (
-                                        <div>
-                                            <div style={{display: 'flex', justifyContent: 'flex-end', width: '100%'}}>
-                                                {record?.ordersId?.TAKE_PROFIT_MARKET && !record?.ordersId?.macd && !record?.ordersId?.withoutLoss ?
-                                                    <Button type='primary' style={{
-                                                        background: 'none',
-                                                        border: '1px solid',
-                                                        marginRight: '16px'
-                                                    }} onClick={() => closeOrder({
-                                                        symbol: record?.currency,
-                                                        id_order: record?.ordersId?.TAKE_PROFIT_MARKET?.orderId,
-                                                        id: record.key
-                                                    })}>
-                                                        Отключить Take Profit
-                                                    </Button>
-                                                    :
-                                                    <></>
-                                                }
-                                                {record?.ordersId?.withoutLoss && !record?.ordersId?.macd ?
-                                                    <Button type='primary' style={{
-                                                        background: 'none',
-                                                        border: '1px solid',
-                                                        marginRight: '16px'
-                                                    }} onClick={() => closeOrder({
-                                                        type: 'withoutLoss',
-                                                        symbol: record?.currency,
-                                                        id: record.key
-                                                    })}>
-                                                        Отключить БУ
-                                                    </Button>
-                                                    :
-                                                    <></>
-                                                }
-                                                {record?.ordersId?.TRAILING_STOP_MARKET ?
-                                                    <Button type='primary' style={{
-                                                        background: 'none',
-                                                        border: '1px solid',
-                                                        marginRight: '16px'
-                                                    }} onClick={() => closeOrder({
-                                                        type: 'trailing',
-                                                        symbol: record?.currency,
-                                                        id: record.key
-                                                    })}>
-                                                        Отключить Trailing
-                                                    </Button>
-                                                    :
-                                                    <></>
-                                                }
-                                                {record?.ordersId?.macd && !record?.ordersId?.TAKE_PROFIT_MARKET && !record?.ordersId?.withoutLoss ?
-                                                    <Button type='primary' style={{
-                                                        background: 'none',
-                                                        border: '1px solid',
-                                                        marginRight: '16px'
-                                                    }} onClick={() => closeOrder({
-                                                        ...record.openedConfig,
-                                                        // quantity: record?.positionData?.executedQty,
-                                                        id: record.key
-                                                    })}>
-                                                        Отключить macd
-                                                    </Button>
-                                                    :
-                                                    <></>
-                                                }
-                                                <Button danger onClick={() => closePosition({
-                                                    ...record.openedConfig,
-                                                    // quantity: record?.positionData?.executedQty,
-                                                    id: record?.positionData?.orderId
-                                                })}>
-                                                    Закрыть позицию
-                                                </Button>
-                                                {record.description}
-                                            </div>
-                                            <div style={{
-                                                display: 'grid',
-                                                gridTemplateColumns: 'repeat(3,1fr)',
-                                                gridTemplateRows: '1fr',
-                                                gridColumnGap: '10px',
-                                                gridRowGap: '10px',
-                                                marginTop: '10px'
-                                            }}>
-                                                <span style={{margin: '0 auto'}}>Комиссия открытия: {parseFloat(record?.commission).toFixed(6)}<br/>Комиссия закрытия: {((record?.positionData?.origQty * parseFloat(positionsPrices[record?.positionData?.symbol])) * record?.openedConfig?.commission).toFixed(6)}</span>
-                                                {record?.ordersId?.withoutLoss?.orderId ? <span style={{margin: '0 auto'}}><h4 style={{color:'#fff',margin: '0 0 4px'}}>БУ</h4>Фикс цена: {parseFloat(record?.ordersId?.withoutLoss?.fixedPrice).toFixed(6)}<br/>MIN отклонение: {parseFloat(record?.ordersId?.withoutLoss?.minDeviation).toFixed(6)}<br/>MAX отклонение: {parseFloat(record?.ordersId?.withoutLoss?.maxDeviation).toFixed(6)}</span> : <></>}
-                                                {record?.ordersId?.TRAILING_STOP_MARKET?.orderId ? <span style={{margin: '0 auto'}}><h4 style={{color:'#fff',margin: '0 0 4px'}}>CH</h4>Фикс: {JSON.stringify(record?.ordersId?.TRAILING_STOP_MARKET?.arrayPrice)}<br/>Отклонение: {JSON.stringify(record?.ordersId?.TRAILING_STOP_MARKET?.arrayDeviation)}</span> : <></>}
-                                            </div>
-                                        </div>
-                                    ),
-                                }}
-                                dataSource={positions}
-                            />
-                        </ConfigProvider>
-                    </div>
-                    :
-                    <div> Нет открытых позиций</div>
-                }
-
-            </div>
-        </>
+                        />
+                    </ConfigProvider>
+                </div>
+            ) : (
+                <div>Нет открытых позиций</div>
+            )}
+        </div>
     );
 };
 

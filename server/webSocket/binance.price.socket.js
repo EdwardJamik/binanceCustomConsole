@@ -210,8 +210,8 @@ async function ch(symbol, price) {
 
                         } else {
                             const lastArrayPriceIndex = trailingCh[currentSymbol][index]?.arrayPrice?.length - 1
-                            const newPrice = parseFloat(trailingCh[currentSymbol][index]?.arrayPrice[lastArrayPriceIndex]) + parseFloat(trailingCh[currentSymbol][index]?.arrayPrice[lastArrayPriceIndex])
-                            const newDeviation = parseFloat(newPrice) - (parseFloat(trailingCh[currentSymbol][index]?.arrayPrice[lastArrayPriceIndex]) * parseFloat(parseFloat(trailingCh[currentSymbol][index]?.arrayDeviation[lastArrayPriceIndex])) / 100)
+                            const newPrice = parseFloat(trailingCh[currentSymbol][index]?.lastPrice) + parseFloat(trailingCh[currentSymbol][index]?.arrayPrice[lastArrayPriceIndex])
+                            const newDeviation = parseFloat(newPrice) - (parseFloat(trailingCh[currentSymbol][index]?.lastPrice) * parseFloat(parseFloat(trailingCh[currentSymbol][index]?.lastDeviation)) / 100)
 
                             trailingCh[currentSymbol][index].arrayPrice = [...trailingCh[currentSymbol][index].arrayPrice, newPrice]
                             trailingCh[currentSymbol][index].arrayDeviation = [...trailingCh[currentSymbol][index].arrayDeviation, newDeviation]
@@ -225,7 +225,7 @@ async function ch(symbol, price) {
                         }
 
                         index++
-                    } else if(order?.fix &&parseFloat(order.deviation) >= profit) {
+                    } else if(order?.fix && parseFloat(order.deviation) >= profit) {
 
                         changed = true
                         trailingCh[currentSymbol][index] = {...trailingCh[currentSymbol][index], remove: true}

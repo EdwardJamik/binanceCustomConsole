@@ -106,7 +106,6 @@ class SocketIOServer {
 
             socket.on('closeOrder', async ({type, id, symbol, userId}) => {
 
-                console.log(type, id, symbol)
                 if(type === 'withoutLoss') {
                     const findOrder = await Order.findOne({_id: String(id)})
                     if (findOrder?.ordersId?.withoutLoss) {
@@ -115,7 +114,6 @@ class SocketIOServer {
                 } else if(type === 'trailing'){
                     const findOrder = await Order.findOne({_id: String(id)})
                     if(findOrder?.ordersId?.TRAILING_STOP_MARKET){
-                        console.log(findOrder?.ordersId?.TRAILING_STOP_MARKET)
                         await removeInstrument(type, findOrder?.positionsId, symbol, id, findOrder?.userId)
                     }
                 }
