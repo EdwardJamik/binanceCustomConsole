@@ -92,7 +92,13 @@ async function wl(symbol, price) {
             if (!fix && !fixDeviation && parseFloat(fixedPrice) <= profit) {
                 await fixedPosition(order, true);
                 logUserEvent(`${order?.orderId}`, `FIXED БУ: ${order?.symbol}, current price: ${currentPrice}, fixedPrice:${fixedPrice}, profit: ${profit}`);
-                return { ...order, fix: true, remove: true };
+
+                if(order?.trailing){
+                    return { ...order, fix: true, remove: true };
+                } else {
+                    return { ...order, fix: true};
+                }
+
             }
 
             if ((fix && !fixDeviation && parseFloat(minDeviation) >= profit) ||
@@ -287,7 +293,7 @@ async function removeQueue(id,symbol){
     }
 
     queue[symbol].sort((a, b) => a.price - b.price);
-    
+
     console.log(queue)
 
     return;
