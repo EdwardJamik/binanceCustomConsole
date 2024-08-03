@@ -12,6 +12,7 @@ function getTrailingCH (order, user, querySkeleton, prevOrder, key_1, key_2, bin
             price: order?.trailing?.option[0]?.price,
             deviation: parseFloat(order?.trailing?.option[0]?.price) * parseFloat(order?.trailing?.option[0]?.deviation) / 100,
             index: 0,
+            dIndex: 0,
             arrayPrice: [],
             arrayDeviation: [],
             lastPrice: parseFloat(order?.trailing?.option[order?.trailing?.option?.length - 1]?.price),

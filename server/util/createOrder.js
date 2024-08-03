@@ -170,7 +170,7 @@ async function createOrder(orderElement, userData, id) {
                                     addwithoutLoss.addwithoutLoss(ordersSystem?.withoutLoss)
                                 }
 
-                                if (order?.trailing?.status) {
+                                if (order?.trailing?.status && !order?.withoutLoss?.status) {
                                     addTrailing.addTrailing(ordersSystem?.trailing)
                                 }
 
@@ -388,7 +388,7 @@ function createOrders(order,querySkeleton,user, key_1, key_2, binance_test){
         // }
 
         if (order?.trailing?.status && order?.withoutLoss?.status) {
-            ordersId = getWithoutLoss(order, user, querySkeleton,ordersId,key_1, key_2, binance_test)
+            ordersId = getWithoutLoss(order, user, querySkeleton,ordersId,key_1, key_2, binance_test, order?.trailing?.status)
             // console.log('WITHOUTLOSS --->>>',ordersId)
             ordersId = getTrailingCH({...order, currentPrice: ordersId?.withoutLoss?.fixedPrice}, user, querySkeleton, ordersId,key_1, key_2, binance_test)
             // console.log('TRAILING --->>>',ordersId)
@@ -396,7 +396,7 @@ function createOrders(order,querySkeleton,user, key_1, key_2, binance_test){
             if(order?.trailing?.status){
                 ordersId = getTrailingCH(order, user, querySkeleton, ordersId, key_1, key_2, binance_test)
             } else if(order?.withoutLoss?.status){
-                ordersId = getWithoutLoss(order, user, querySkeleton, ordersId, key_1, key_2, binance_test)
+                ordersId = getWithoutLoss(order, user, querySkeleton, ordersId, key_1, key_2, binance_test, order?.trailing?.status)
             }
         }
 

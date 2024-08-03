@@ -1,4 +1,4 @@
-function getWithoutLoss (order, user, querySkeleton, prevOrder, key_1, key_2, binance_test){
+function getWithoutLoss (order, user, querySkeleton, prevOrder, key_1, key_2, binance_test, trailing){
     try {
 
         const currentSize =  parseFloat(querySkeleton?.executedQty)/parseFloat(order?.leverage)
@@ -21,6 +21,7 @@ function getWithoutLoss (order, user, querySkeleton, prevOrder, key_1, key_2, bi
                     startPrice: querySkeleton?.avgPrice,
                     commission: (parseFloat(currentSize)*parseFloat(order?.leverage))*parseFloat(querySkeleton?.avgPrice)*(parseFloat(order?.withoutLoss?.option?.commission)),
                     commissionPrecent: order?.commission,
+                    trailing: trailing,
                     key_1, key_2, binance_test
                 }
             }
@@ -43,6 +44,7 @@ function getWithoutLoss (order, user, querySkeleton, prevOrder, key_1, key_2, bi
                     startPrice: parseFloat(querySkeleton?.avgPrice),
                     commission: (parseFloat(currentSize)*parseFloat(order?.leverage))*parseFloat(querySkeleton?.avgPrice)*(parseFloat(order?.withoutLoss?.option?.commission)),
                     commissionPrecent: order?.commission,
+                    trailing: trailing,
                     key_1, key_2, binance_test
                 }
             }

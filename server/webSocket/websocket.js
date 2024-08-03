@@ -50,7 +50,8 @@ class SocketIOServer {
                 try {
                     await getAuthentificate(token,socket.id)
                     const {_id} = await User.findOne({token: socket.id})
-                    socket.join(String(_id));
+                    if(_id)
+                        socket.join(String(_id));
                 } catch (e){
                     console.error(e)
                 }

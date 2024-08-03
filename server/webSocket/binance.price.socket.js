@@ -71,210 +71,144 @@ function streamPrice(symbol,id,type_binance) {
 
 async function wl(symbol, price) {
     try {
-        const currentPrice = parseFloat(price)
-        const currentSymbol = symbol
+        const currentPrice = parseFloat(price);
+        const currentSymbol = symbol;
 
-        if (currentSymbol && currentPrice && withoutLoss[currentSymbol]) {
+        if (!currentSymbol || !currentPrice || !withoutLoss[currentSymbol]) return;
 
-            let changed = false
+        const updatedOrders = await Promise.all(withoutLoss[currentSymbol].map(async (order) => {
+            if (order?.remove) return order;
 
-            for (let index = 0; index < withoutLoss[currentSymbol].length; index++) {
-                const order = withoutLoss[currentSymbol][index];
+            const { positionSide, q, commissionPrecent, startPrice, commission, fixedPrice, fix, fixDeviation, minDeviation, maxDeviation, orderId, trailing } = order;
 
-                if(order?.remove !== true) {
-                    let precent = 0, profit = 0
+            const precent = parseFloat(q) * currentPrice * parseFloat(commissionPrecent);
+            const profit = positionSide === 'LONG'
+                ? ((currentPrice - parseFloat(startPrice)) * parseFloat(q)) - (precent + parseFloat(commission))
+                : ((parseFloat(startPrice) - currentPrice) * parseFloat(q)) - (precent + parseFloat(commission));
 
-                    if (order?.positionSide === 'LONG') {
-                        precent = parseFloat(order?.q) * parseFloat(price) * parseFloat(order?.commissionPrecent)
-                        profit = (((parseFloat(price) - parseFloat(order?.startPrice)) * parseFloat(order?.q))) - (precent + parseFloat(order?.commission))
-                    } else {
-                        precent = parseFloat(order?.q) * parseFloat(price) * parseFloat(order?.commissionPrecent)
-                        profit = ((((parseFloat(order?.startPrice) - parseFloat(price)) * parseFloat(order?.q)) - (precent + parseFloat(order?.commission))))
-                    }
+            if (!profit) return order;
 
-                    console.log('PRICE -> ', price, 'PROFIT -> ', profit, " ID: ", order?.orderId)
-
-                    if (profit) {
-                        if (!order?.fix && !order?.fixDeviation && parseFloat(order?.fixedPrice) <= parseFloat(profit)) {
-
-                            withoutLoss[currentSymbol][index].fix = true;
-                            await fixedPosition(order, true)
-                            console.log(`FIXED price: ${profit} || ${order?.orderId}`, parseFloat(order?.fixedPrice) >= profit, parseFloat(order?.fixedPrice), '>=', profit);
-                            index++;
-                        }
-
-                        if (order?.fix && !order?.fixDeviation && parseFloat(order?.minDeviation) >= profit || order?.fix && order?.fixDeviation && parseFloat(order?.fixedPrice) >= profit) {
-                            // Якщо мінімальний поріг більше ніж ціна
-
-                            changed = true
-                            withoutLoss[currentSymbol][index] = {...withoutLoss[currentSymbol][index], remove: true}
-
-                            await closePosition({
-                                    symbol: order?.symbol,
-                                    positionSide: order?.positionSide,
-                                    side: order?.positionSide === 'LONG' ? 'SELL' : 'BUY',
-                                    quantity: order?.q,
-                                    type: 'MARKET',
-                                    id: order?.orderId
-                            }, order?.userId, order?.key_1, order?.key_2, order?.binance_test)
-
-                            await Order.updateOne({
-                                positionsId: order?.orderId,
-                                userId: order?.userId,
-                            }, {
-                                "ordersId.withoutLoss.closed": true
-                            });
-
-                            if(trailingCh[currentSymbol])
-                                trailingCh[currentSymbol] = trailingCh[currentSymbol].filter(findOrder => findOrder.orderId !== order?.orderId);
-
-                            console.log(`[${new Date().toLocaleTimeString('uk-UA')}] CLOSE FIXED POSITION: ${JSON.stringify({
-                                symbol: order?.symbol,
-                                positionSide: order?.positionSide,
-                                side: order?.positionSide === 'LONG' ? 'SELL' : 'BUY',
-                                quantity: order?.q,
-                                type: 'MARKET',
-                                id: order?.orderId
-                            })}`)
-
-                            console.log(`CLOSE ORDER fixDeviation price: ${profit} || ${order?.orderId}`, parseFloat(order?.minDeviation) <= profit, parseFloat(order?.fixedPrice), '<=', profit);
-
-                            index++
-                        }
-
-                        if (order?.fix && !order?.fixDeviation && parseFloat(order?.maxDeviation) <= profit) {
-                            // Вимкнення мінімального порогу
-
-                            withoutLoss[currentSymbol][index].fixDeviation = true;
-                            await deviationFixedPosition(order, true)
-                            console.log(`fixDeviation price: ${profit} || ${order?.orderId}`, parseFloat(order?.maxDeviation) >= profit, parseFloat(order?.maxDeviation), '>=', profit);
-                            index++;
-                        }
-
-                    } else {
-                        index++;
-                    }
-                } else {
-                    index++;
-                }
-
-                if(index === (withoutLoss[currentSymbol]?.length-1) && changed){
-                    withoutLoss[currentSymbol] = withoutLoss[currentSymbol].filter(order => order?.remove !== true);
-                    console.log(`REMOVED ITEM WITHOUTLOSS ${currentSymbol}-> `, withoutLoss[currentSymbol])
-                }
+            if (!fix && !fixDeviation && parseFloat(fixedPrice) <= profit) {
+                await fixedPosition(order, true);
+                return { ...order, fix: true, remove: true };
             }
-        }
+
+            if ((fix && !fixDeviation && parseFloat(minDeviation) >= profit) ||
+                (fix && fixDeviation && parseFloat(fixedPrice) >= profit)) {
+                await closePosition({
+                    symbol: order.symbol,
+                    positionSide,
+                    side: positionSide === 'LONG' ? 'SELL' : 'BUY',
+                    quantity: q,
+                    type: 'MARKET',
+                    id: orderId
+                }, order.userId, order.key_1, order.key_2, order.binance_test);
+
+                await Order.updateOne(
+                    { positionsId: orderId, userId: order.userId },
+                    { "ordersId.withoutLoss.closed": true }
+                );
+
+                if (trailingCh[currentSymbol]) {
+                    trailingCh[currentSymbol] = trailingCh[currentSymbol].filter(findOrder => findOrder.orderId !== orderId);
+                }
+
+                return { ...order, remove: true };
+            }
+
+            if (fix && !fixDeviation && parseFloat(maxDeviation) <= profit) {
+                await deviationFixedPosition(order, true);
+                return { ...order, fixDeviation: true };
+            }
+
+            return order;
+        }));
+
+        withoutLoss[currentSymbol] = updatedOrders.filter(order => !order.remove);
+
     } catch (e) {
-        console.error(e)
+        console.error(e);
     }
 }
 
 async function ch(symbol, price) {
     try {
-        const currentPrice = parseFloat(price)
-        const currentSymbol = symbol
+        const currentPrice = parseFloat(price);
+        const currentSymbol = symbol;
 
-        if (currentSymbol && currentPrice && trailingCh[currentSymbol]) {
+        if (!currentSymbol || !currentPrice || !trailingCh[currentSymbol]) return;
 
-            let changed = false
+        const updatedOrders = await Promise.all(trailingCh[currentSymbol].map(async (order) => {
+            if (order?.remove) return order;
 
-            for (let index = 0; index < trailingCh[currentSymbol].length; index++) {
-                const order = trailingCh[currentSymbol][index];
+            const { positionSide, q, commissionPrecent, startPrice, commission, price: orderPrice, deviation, fix, arrayPrice, arrayDeviation, lastPrice, lastDeviation, orderId } = order;
+            const chIndex = parseInt(order?.index);
+            const dIndex = parseInt(order?.dIndex);
 
-                if (order?.remove !== true) {
-                    const chIndex = parseInt(trailingCh[currentSymbol][index]?.index)
+            const precent = parseFloat(q) * currentPrice * parseFloat(commissionPrecent);
+            const profit = positionSide === 'LONG'
+                ? ((currentPrice - parseFloat(startPrice)) * parseFloat(q)) - (precent + parseFloat(commission))
+                : ((parseFloat(startPrice) - currentPrice) * parseFloat(q)) - (precent + parseFloat(commission));
 
-                    let precent = 0, profit = 0
+            if (parseFloat(orderPrice) <= profit) {
+                let updatedOrder = { ...order, fix: true };
 
-                    if (order?.positionSide === 'LONG') {
-                        precent = parseFloat(order?.q) * parseFloat(price) * parseFloat(order?.commissionPrecent)
-                        profit = (((parseFloat(price) - parseFloat(order?.startPrice)) * parseFloat(order?.q))) - (precent + parseFloat(order?.commission))
-                    } else {
-                        precent = parseFloat(order?.q) * parseFloat(price) * parseFloat(order?.commissionPrecent)
-                        profit = ((((parseFloat(order?.startPrice) - parseFloat(price)) * parseFloat(order?.q)) - (precent + parseFloat(order?.commission))))
-                    }
-
-                    if (parseFloat(order?.price) <= profit) {
-                        // Перехід на новий рівень
-                        if(trailingCh[currentSymbol][index]?.fix !== true)
-                            trailingCh[currentSymbol][index] = {...trailingCh[currentSymbol][index], fix:true}
-
-                        if (trailingCh[currentSymbol][index]?.arrayPrice?.length - 1 >= chIndex + 1) {
-                            trailingCh[currentSymbol][index].price = trailingCh[currentSymbol][index].arrayPrice[chIndex + 1];
-                            trailingCh[currentSymbol][index].deviation = trailingCh[currentSymbol][index].arrayDeviation[chIndex + 1];
-                            trailingCh[currentSymbol][index].index = chIndex + 1
-
-                            await fixedPosition(trailingCh[currentSymbol][index], false)
-
-                            console.log(`TRAILING CH -> NEXT LEVEL: ${currentPrice} -> profit: ${profit} || ID: ${order?.orderId}`, trailingCh[currentSymbol][index].arrayDeviation[chIndex + 1], trailingCh[currentSymbol][index].arrayDeviation[chIndex + 1]);
-
-                        } else {
-                            const lastArrayPriceIndex = trailingCh[currentSymbol][index]?.arrayPrice?.length - 1
-                            const newPrice = parseFloat(trailingCh[currentSymbol][index]?.lastPrice) + parseFloat(trailingCh[currentSymbol][index]?.arrayPrice[lastArrayPriceIndex])
-                            const newDeviation = parseFloat(newPrice) - (parseFloat(trailingCh[currentSymbol][index]?.lastPrice) * parseFloat(parseFloat(trailingCh[currentSymbol][index]?.lastDeviation)) / 100)
-
-                            trailingCh[currentSymbol][index].arrayPrice = [...trailingCh[currentSymbol][index].arrayPrice, newPrice]
-                            trailingCh[currentSymbol][index].arrayDeviation = [...trailingCh[currentSymbol][index].arrayDeviation, newDeviation]
-                            trailingCh[currentSymbol][index].price = parseFloat(newPrice);
-                            trailingCh[currentSymbol][index].deviation = parseFloat(newDeviation);
-                            trailingCh[currentSymbol][index].index = chIndex + 1
-
-                            await fixedPosition(trailingCh[currentSymbol][index], false)
-
-                            console.log(`TRAILING CH ADDITIONAL NEXT LEVEL: ${currentPrice} -> profit: ${profit}  || ID: ${order?.orderId} NEW ITERATION: ${chIndex + 1}`, newPrice, newDeviation);
-                        }
-
-                        index++
-                    } else if(order?.fix && parseFloat(order.deviation) >= profit) {
-
-                        changed = true
-                        trailingCh[currentSymbol][index] = {...trailingCh[currentSymbol][index], remove: true}
-
-                        await closePosition({
-                                symbol: order?.symbol,
-                                positionSide: order?.positionSide,
-                                side: order?.positionSide === 'LONG' ? 'SELL' : 'BUY',
-                                quantity: order?.q,
-                                type: 'MARKET',
-                                id: order?.orderId
-                        }, order?.userId, order?.key_1, order?.key_2, order?.binance_test)
-
-                        if(withoutLoss[currentSymbol])
-                            withoutLoss[currentSymbol] = withoutLoss[currentSymbol].filter(findOrder => findOrder.orderId !== order?.orderId);
-                        // await fixedPosition(trailingCh[currentSymbol][index], false)
-
-                        await Order.updateOne({
-                            positionsId: order?.orderId,
-                            userId: order?.userId,
-                        }, {
-                            "ordersId.TRAILING_STOP_MARKET.closed": true
-                        });
-
-                        console.log(`[${new Date().toLocaleTimeString('uk-UA')}] CLOSE TRAILING CH ORDER price: ${currentPrice} || -> profit: ${profit} -> CLOSE ${order?.orderId} ${JSON.stringify({
-                            symbol: order?.symbol,
-                            positionSide: order?.positionSide,
-                            side: order?.positionSide === 'LONG' ? 'SELL' : 'BUY',
-                            quantity: order?.q,
-                            type: 'MARKET',
-                            id: order?.orderId
-                        })}`)
-
-                        console.log(`CLOSE TRAILING CH ORDER price: ${currentPrice} || -> profit: ${profit}  ${order.orderId}`, parseFloat(order.deviation) <= profit, parseFloat(order.deviation), '<=', profit);
-
-                        index++;
-                    }
+                if (arrayPrice.length - 1 >= chIndex + 1) {
+                    updatedOrder = {
+                        ...updatedOrder,
+                        price: arrayPrice[chIndex + 1],
+                        deviation: chIndex === 0 ? arrayDeviation[dIndex] : arrayDeviation[dIndex + 1],
+                        index: chIndex + 1,
+                        dIndex: dIndex + 1
+                    };
                 } else {
-                    index++
+                    const lastArrayPriceIndex = arrayPrice.length - 1;
+                    const newPrice = parseFloat(lastPrice) + parseFloat(arrayPrice[lastArrayPriceIndex]);
+                    const newDeviation = newPrice - (parseFloat(lastPrice) * parseFloat(lastDeviation) / 100);
+
+                    updatedOrder = {
+                        ...updatedOrder,
+                        arrayPrice: [...arrayPrice, newPrice],
+                        arrayDeviation: [...arrayDeviation, newDeviation],
+                        price: newPrice,
+                        deviation: newDeviation,
+                        index: chIndex + 1,
+                        dIndex: dIndex + 1
+                    };
                 }
 
-                if(index === (trailingCh[currentSymbol]?.length-1) && changed){
-                    trailingCh[currentSymbol] = trailingCh[currentSymbol].filter(order => order?.remove !== true);
-                    console.log(`REMOVED ITEM TRAILING CH ${currentSymbol}-> `, trailingCh[currentSymbol])
+                await fixedPosition(updatedOrder, false);
+                return updatedOrder;
+
+            } else if (fix && parseFloat(deviation) >= profit) {
+                await closePosition({
+                    symbol: order.symbol,
+                    positionSide,
+                    side: positionSide === 'LONG' ? 'SELL' : 'BUY',
+                    quantity: q,
+                    type: 'MARKET',
+                    id: orderId
+                }, order.userId, order.key_1, order.key_2, order.binance_test);
+
+                if (withoutLoss[currentSymbol]) {
+                    withoutLoss[currentSymbol] = withoutLoss[currentSymbol].filter(findOrder => findOrder.orderId !== orderId);
                 }
+
+                await Order.updateOne(
+                    { positionsId: orderId, userId: order.userId },
+                    { "ordersId.TRAILING_STOP_MARKET.closed": true }
+                );
+
+                return { ...order, remove: true };
             }
-        }
+
+            return order;
+        }));
+
+        trailingCh[currentSymbol] = updatedOrders.filter(order => !order.remove);
+
     } catch (e) {
-        console.error(e)
+        console.error(e);
     }
 }
 
