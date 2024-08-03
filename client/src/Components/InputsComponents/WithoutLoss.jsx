@@ -1,18 +1,17 @@
-import React, {useState} from 'react';
+import React from 'react';
 import {ConfigProvider, InputNumber, Select} from "antd";
 import {useDispatch, useSelector} from "react-redux";
-import {usePrice} from "../PriceSocket/PriceSocket.jsx";
 import {useSocket} from "../Socket/Socket.jsx";
 
 const WithoutLoss = () => {
     const dispatch = useDispatch();
     const userOption = useSelector(state => state.currentOption)
-    const positionType = useSelector(state => state.isTypePosition)
-    const commission = useSelector(state => state.commission)
+    // const positionType = useSelector(state => state.isTypePosition)
+    // const commission = useSelector(state => state.commission)
 
     const socket = useSocket()
 
-    const {price} = usePrice()
+    // const {price} = usePrice()
 
     const handleAmountChange = (value, index, type) => {
         if (value >= 0) {
@@ -72,60 +71,37 @@ const WithoutLoss = () => {
                     {userOption?.withoutLoss?.option ?
                         userOption?.withoutLoss?.option?.map((item, index) => {
 
-                            // const currentSize =  (parseFloat(userOption?.amount)/parseFloat(price))
-                            // const currentSize = (() => {
-                            //     const result = parseFloat(userOption?.amount) / parseFloat(price);
-                            //     if (Number.isNaN(result) || !Number.isFinite(result)) return 0;
+                            // function roundDecimal(number) {
+                            //     let integerPart = Math.trunc(number);
                             //
-                            //     const integerPart = Math.trunc(result);
-                            //     if (integerPart !== 0) {
-                            //         return integerPart;
-                            //     } else {
-                            //         const fractionalPart = result.toString().split('.')[1];
-                            //         let firstTwoIntegers = '';
-                            //         let digitCount = 0;
+                            //     let fractionalPart = number - integerPart;
                             //
-                            //         for (let digit of fractionalPart) {
-                            //             firstTwoIntegers += digit;
-                            //             if (digit !== '0') digitCount++;
-                            //             if (digitCount === 2) break;
+                            //     if (fractionalPart !== 0 && integerPart === 0) {
+                            //         let factor = 1;
+                            //         while (fractionalPart * factor < 1) {
+                            //             factor *= 10;
                             //         }
-                            //
-                            //         return parseFloat(`0.${firstTwoIntegers}`);
+                            //         fractionalPart = Math.ceil(fractionalPart * factor) / factor;
                             //     }
-                            // })();
-                            function roundDecimal(number) {
-                                let integerPart = Math.trunc(number);
+                            //
+                            //     if (integerPart === 0)
+                            //         return parseFloat(`${integerPart + fractionalPart}`);
+                            //     else
+                            //         return parseFloat(`${integerPart}`);
+                            //
+                            // }
 
-                                let fractionalPart = number - integerPart;
+                            // const currentSize = roundDecimal((parseFloat(userOption?.amount))/parseFloat(price))
+                            // const cross = userOption?.withoutLoss?.option[0]?.isPriceType  === 'fixed' ? parseFloat(userOption?.withoutLoss?.option[0]?.price) : (parseFloat(userOption?.withoutLoss?.option[0]?.price)*(parseFloat(price)) / 100)
+                            // const fee = ((parseFloat(currentSize)*parseFloat(userOption?.adjustLeverage))*parseFloat(price)*parseFloat(commission.commissionTaker))*2
 
-                                if (fractionalPart !== 0 && integerPart === 0) {
-                                    let factor = 1;
-                                    while (fractionalPart * factor < 1) {
-                                        factor *= 10;
-                                    }
-                                    fractionalPart = Math.ceil(fractionalPart * factor) / factor;
-                                }
-
-                                if (integerPart === 0)
-                                    return parseFloat(`${integerPart + fractionalPart}`);
-                                else
-                                    return parseFloat(`${integerPart}`);
-
-                            }
-
-                            const currentSize = roundDecimal((parseFloat(userOption?.amount))/parseFloat(price))
-                            const cross = userOption?.withoutLoss?.option[0]?.isPriceType  === 'fixed' ? parseFloat(userOption?.withoutLoss?.option[0]?.price) : (parseFloat(userOption?.withoutLoss?.option[0]?.price)*(parseFloat(price)) / 100)
-                            const fee = ((parseFloat(currentSize)*parseFloat(userOption?.adjustLeverage))*parseFloat(price)*parseFloat(commission.commissionTaker))*2
-
-                            const priceProcent = userOption?.withoutLoss?.option[0].deviation
-
-                            const withousLossLong = (((parseFloat(userOption?.amount)*parseFloat(userOption?.adjustLeverage)) + (parseFloat(cross)+parseFloat(fee))) * parseFloat(price)) / (parseFloat(userOption?.amount)*parseFloat(userOption?.adjustLeverage))
-                            const withousLossShort = (((parseFloat(userOption?.amount)*parseFloat(userOption?.adjustLeverage)) - (parseFloat(cross)+parseFloat(fee))) * parseFloat(price)) / (parseFloat(userOption?.amount)*parseFloat(userOption?.adjustLeverage))
+                            // const priceProcent = userOption?.withoutLoss?.option[0].deviation
+                            //
+                            // const withousLossLong = (((parseFloat(userOption?.amount)*parseFloat(userOption?.adjustLeverage)) + (parseFloat(cross)+parseFloat(fee))) * parseFloat(price)) / (parseFloat(userOption?.amount)*parseFloat(userOption?.adjustLeverage))
+                            // const withousLossShort = (((parseFloat(userOption?.amount)*parseFloat(userOption?.adjustLeverage)) - (parseFloat(cross)+parseFloat(fee))) * parseFloat(price)) / (parseFloat(userOption?.amount)*parseFloat(userOption?.adjustLeverage))
 
                             return (
                                 <div key={index} style={{position: 'relative'}}>
-                                    {/*{currentSize}*/}
                                     <div style={{display: 'flex', position: 'relative'}}>
 
                                         <InputNumber
@@ -160,36 +136,36 @@ const WithoutLoss = () => {
                                             controls={false}
                                         />
                                     </div>
-                                    <div style={{
-                                        display: 'grid',
-                                        gridTemplateRows: '1fr',
-                                        gridTemplateColumns: 'repeat(2,1fr)'
-                                    }}>
-                                        <span style={{
-                                            textAlign: 'center',
-                                            fontWeight: '400',
-                                            fontSize: '12px',
-                                            color: '#fff'
-                                        }}>
-                                           {positionType ?
-                                               parseFloat(withousLossLong).toFixed(6)
-                                               :
-                                               parseFloat(withousLossShort).toFixed(6)
-                                           }
-                                       </span>
-                                        <span style={{
-                                            textAlign: 'center',
-                                            fontWeight: '400',
-                                            fontSize: '12px',
-                                            color: '#fff'
-                                        }}>
-                                            {positionType ?
-                                                <>min: {(parseFloat(withousLossLong) - (parseFloat(userOption?.withoutLoss?.option[0].deviation) * parseFloat(withousLossLong) / 100)).toFixed(6)}<br/>max: {(parseFloat(withousLossLong) + (parseFloat(userOption?.withoutLoss?.option[0].deviation) * parseFloat(withousLossLong) / 100)).toFixed(6)}</>
-                                                :
-                                                <>min: {(parseFloat(withousLossShort) + (parseFloat(userOption?.withoutLoss?.option[0].deviation) * parseFloat(withousLossShort) / 100)).toFixed(6)}<br/>max: {(parseFloat(withousLossShort) - (parseFloat(userOption?.withoutLoss?.option[0].deviation) * parseFloat(withousLossShort) / 100)).toFixed(6)}</>
-                                            }
-                                       </span>
-                                    </div>
+                                    {/*<div style={{*/}
+                                    {/*    display: 'grid',*/}
+                                    {/*    gridTemplateRows: '1fr',*/}
+                                    {/*    gridTemplateColumns: 'repeat(2,1fr)'*/}
+                                    {/*}}>*/}
+                                       {/* <span style={{*/}
+                                       {/*     textAlign: 'center',*/}
+                                       {/*     fontWeight: '400',*/}
+                                       {/*     fontSize: '12px',*/}
+                                       {/*     color: '#fff'*/}
+                                       {/* }}>*/}
+                                       {/*    {positionType ?*/}
+                                       {/*        parseFloat(withousLossLong).toFixed(6)*/}
+                                       {/*        :*/}
+                                       {/*        parseFloat(withousLossShort).toFixed(6)*/}
+                                       {/*    }*/}
+                                       {/*</span>*/}
+                                       {/* <span style={{*/}
+                                       {/*     textAlign: 'center',*/}
+                                       {/*     fontWeight: '400',*/}
+                                       {/*     fontSize: '12px',*/}
+                                       {/*     color: '#fff'*/}
+                                       {/* }}>*/}
+                                       {/*     {positionType ?*/}
+                                       {/*         <>min: {(parseFloat(withousLossLong) - (parseFloat(userOption?.withoutLoss?.option[0].deviation) * parseFloat(withousLossLong) / 100)).toFixed(6)}<br/>max: {(parseFloat(withousLossLong) + (parseFloat(userOption?.withoutLoss?.option[0].deviation) * parseFloat(withousLossLong) / 100)).toFixed(6)}</>*/}
+                                       {/*         :*/}
+                                       {/*         <>min: {(parseFloat(withousLossShort) + (parseFloat(userOption?.withoutLoss?.option[0].deviation) * parseFloat(withousLossShort) / 100)).toFixed(6)}<br/>max: {(parseFloat(withousLossShort) - (parseFloat(userOption?.withoutLoss?.option[0].deviation) * parseFloat(withousLossShort) / 100)).toFixed(6)}</>*/}
+                                       {/*     }*/}
+                                       {/*</span>*/}
+                                    {/*</div>*/}
                                 </div>
                             )
                             }

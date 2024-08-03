@@ -16,10 +16,7 @@ const mongoURL = process.env.MERN_DB_URL
 
 console.log("Connecting to DB...")
 
-mongoose.connect(mongoURL, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-})
+mongoose.connect(mongoURL)
     .then(async () => {
         console.log("DB connection Success");
         app.listen(PORT, () => console.log(`Server running on PORT : ${PORT}`));

@@ -1,15 +1,94 @@
-import React, {useCallback, useEffect, useMemo} from 'react';
-import {Badge, Button, ConfigProvider, Spin, Table, Timeline} from "antd";
-import {useSocket} from "../Socket/Socket.jsx";
-import {useDispatch, useSelector} from "react-redux";
-
+import React, { useCallback, useEffect, useMemo, memo } from 'react';
+import { Badge, Button, ConfigProvider, Spin, Table, Timeline } from "antd";
+import { useSocket } from "../Socket/Socket.jsx";
+import { useDispatch, useSelector } from "react-redux";
 import dayjs from "dayjs";
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
-import {LoadingOutlined} from "@ant-design/icons";
+import { LoadingOutlined } from "@ant-design/icons";
 
 dayjs.extend(utc);
-dayjs.extend(timezone)
+dayjs.extend(timezone);
+
+const PriceDisplay = memo(({ price, startPrice }) => (
+    <Badge.Ribbon placement='start' text="Цена" style={{ top: '-14px', fontSize: '12px', background: '#1A1A1A' }}>
+        <div style={{
+            position: 'relative',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            minWidth: '120px',
+            height: '100%',
+            fontSize: '18px',
+            width: '100%',
+            border: '1px solid',
+            borderRadius: '10px',
+        }}>
+            <span style={{ position: 'absolute', top: '10px', fontSize: '11px', fontWeight: '600' }}>{startPrice}</span>
+            {price}
+        </div>
+    </Badge.Ribbon>
+));
+
+const ProfitDisplay = memo(({ profit, procent, fixProfit }) => (
+    <>
+        {fixProfit !== undefined && (
+            <div>
+                <Badge.Ribbon placement='start' text="Фикс по алго" style={{ top: '-14px', fontSize: '12px', background: '#1A1A1A' }}>
+                    <div style={{
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        fontSize: '14px',
+                        lineHeight: '16px',
+                        padding: '8px 2px',
+                        width: '100%',
+                        minWidth: '120px',
+                        maxWidth: '120px',
+                        border: '1px solid',
+                        borderRadius: '10px',
+                        color: fixProfit > 0 ? 'rgb(14, 203, 129,0.8)' : 'rgba(246, 70, 93, 0.8)',
+                        borderColor: '#fff'
+                    }}>
+                        {fixProfit}
+                    </div>
+                </Badge.Ribbon>
+            </div>
+        )}
+        <div>
+            <Badge.Ribbon placement='start' text="Прибыль" style={{ top: '-14px', fontSize: '12px', background: '#1A1A1A' }}>
+                <div style={{
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    fontSize: '14px',
+                    lineHeight: '16px',
+                    padding: '8px 2px',
+                    width: '100%',
+                    minWidth: '120px',
+                    maxWidth: '120px',
+                    border: '1px solid',
+                    borderRadius: '10px',
+                    color: profit >= 0 ? 'rgb(14, 203, 129,0.8)' : 'rgba(246, 70, 93, 0.8)',
+                    borderColor: '#fff'
+                }}>
+                    {profit}<br />{procent}%
+                </div>
+            </Badge.Ribbon>
+        </div>
+    </>
+));
+
+const OrderTimeline = memo(({ ordersId }) => (
+    <Timeline
+        items={[
+            { style: { display: 'flex', paddingBottom: '16px', height: '34px' }, color: (ordersId?.TAKE_PROFIT_MARKET ? '#f0d85a' : '#1A1A1A'), children: 'Take Profit' },
+            { style: { display: 'flex', paddingBottom: '16px', height: '34px' }, color: (ordersId?.withoutLoss ? '#f0d85a' : '#1A1A1A'), children: <>БУ {ordersId?.withoutLoss?.fixed || ordersId?.withoutLoss?.fix ? <span style={{ color: 'rgb(14, 203, 129)' }}>FIXED</span> : ''}</> },
+            { style: { display: 'flex', paddingBottom: '16px', height: '34px' }, color: (ordersId?.TRAILING_STOP_MARKET ? '#f0d85a' : '#1A1A1A'), children: <>CH {ordersId?.TRAILING_STOP_MARKET?.fix ? <><span style={{ color: 'rgb(14, 203, 129)' }}>{parseInt(ordersId?.TRAILING_STOP_MARKET?.index) + 1}</span></> : ''}</> },
+            { style: { display: 'flex', paddingBottom: '0', height: '0' }, color: (ordersId?.macd ? '#f0d85a' : '#1A1A1A'), children: 'MACD' },
+        ]}
+    />
+));
 
 const PositionActive = () => {
     const userTimezone = dayjs.tz.guess();
@@ -18,31 +97,21 @@ const PositionActive = () => {
     const positionsPrices = useSelector(state => state.positionPrice);
     const dispatch = useDispatch();
 
-    const closePosition = useCallback(({symbol, positionSide, quantity, type, id}) => {
-        const order = {symbol, positionSide, side: positionSide === 'LONG' ? 'SELL' : 'BUY', quantity, type, id};
-        socket.emit('createOrder', {order});
+    const closePosition = useCallback(({ symbol, positionSide, quantity, type, id }) => {
+        socket.emit('createOrder', { order: { symbol, positionSide, side: positionSide === 'LONG' ? 'SELL' : 'BUY', quantity, type, id } });
     }, [socket]);
 
-    const closeOrder = useCallback(({type, id, symbol}) => {
-        socket.emit('closeOrder', {type, id, symbol});
+    const closeOrder = useCallback(({ type, id, symbol }) => {
+        socket.emit('closeOrder', { type, id, symbol });
     }, [socket]);
-
-    socket.on("positionPrices", (data) => {
-        const updatePrices = {...positionsPrices, [data[0]]: data[1]}
-        dispatch({type: 'FILTERED_POSITION_PRICE', payload: updatePrices});
-    });
 
     useEffect(() => {
         const handlePositionPrices = (data) => {
-            const updatePrices = {...positionsPrices, [data[0]]: data[1]};
-            dispatch({type: 'FILTERED_POSITION_PRICE', payload: updatePrices});
+            dispatch({ type: 'FILTERED_POSITION_PRICE', payload: { ...positionsPrices, [data[0]]: data[1] } });
         };
 
         socket.on("positionPrices", handlePositionPrices);
-
-        return () => {
-            socket.off("positionPrices", handlePositionPrices);
-        };
+        return () => socket.off("positionPrices", handlePositionPrices);
     }, [socket, dispatch, positionsPrices]);
 
     const columns = useMemo(() => [
@@ -52,7 +121,7 @@ const PositionActive = () => {
             key: 'name',
             align: 'center',
             width: '70px',
-            render: (createdAt) => <>{dayjs(createdAt).tz(userTimezone).format('DD.MM.YYYY')}<br/>{dayjs(createdAt).tz(userTimezone).format('HH:mm:ss')}</>,
+            render: createdAt => <>{dayjs(createdAt).tz(userTimezone).format('DD.MM.YYYY')}<br/>{dayjs(createdAt).tz(userTimezone).format('HH:mm:ss')}</>,
         },
         {
             title: 'Актив',
@@ -68,14 +137,9 @@ const PositionActive = () => {
             align: 'center',
             width: '160px',
             render: (_, record) =>
-                <>
-                    {record.positionData.positionSide === 'LONG' ?
-                        <span style={{color: "rgb(14, 203, 129,0.8)"}}>ВВЕРХ</span>
-                        :
-                        <span style={{color: "rgba(246, 70, 93, 0.8)"}}>ВНИЗ</span>
-                    }
-                </>
-            ,
+                <span style={{ color: record.positionData.positionSide === 'LONG' ? "rgb(14, 203, 129,0.8)" : "rgba(246, 70, 93, 0.8)" }}>
+          {record.positionData.positionSide === 'LONG' ? 'ВВЕРХ' : 'ВНИЗ'}
+        </span>
         },
         {
             title: 'Плечо',
@@ -83,7 +147,7 @@ const PositionActive = () => {
             key: 'leverage',
             align: 'center',
             width: '160px',
-            render: (leverage) => <div style={{fontSize: '18px'}}>x{leverage}</div>,
+            render: leverage => <div style={{fontSize: '18px'}}>x{leverage}</div>,
         },
         {
             title: 'Сумма',
@@ -91,12 +155,14 @@ const PositionActive = () => {
             key: 'origQty',
             align: 'center',
             width: '200px',
-            render: (_, record) => <>
-                {parseFloat(record?.leverage) > 1 ? `${(parseFloat(record?.positionData?.cumQuote) / parseFloat(record?.leverage)).toFixed(2)}/${parseFloat(record?.positionData?.cumQuote)} (${parseFloat(record?.positionData?.origQty)})`
-                    :
-                    `${(parseFloat(record?.positionData?.cumQuote) / parseFloat(record?.leverage)).toFixed(2)} (${parseFloat(record?.positionData?.origQty)})`
-                }
-            </>,
+            render: (_, record) => {
+                const leverage = parseFloat(record?.leverage);
+                const cumQuote = parseFloat(record?.positionData?.cumQuote);
+                const origQty = parseFloat(record?.positionData?.origQty);
+                return leverage > 1
+                    ? `${(cumQuote / leverage).toFixed(2)}/${cumQuote.toFixed(2)} (${origQty})`
+                    : `${(cumQuote / leverage).toFixed(2)} (${origQty})`;
+            },
         },
         {
             title: '',
@@ -105,430 +171,122 @@ const PositionActive = () => {
             align: 'center',
             width: '400px',
             render: (_, record) => {
+                const price = positionsPrices[record?.positionData?.symbol];
+                if (isNaN(price) || !price) return <Spin indicator={<LoadingOutlined style={{ fontSize: 24 }} spin />} />;
+
+                const { positionSide, origQty } = record.positionData;
+                const startPrice = parseFloat(record?.startPrice);
+                const leverage = parseFloat(record?.leverage);
+                const commission = parseFloat(record?.openedConfig?.commission);
+
+                const precent = origQty * price * commission;
+                const priceDiff = positionSide === 'LONG' ? price - startPrice : startPrice - price;
+                const profit = ((priceDiff * origQty) - (precent + parseFloat(record?.commission))).toFixed(2);
+                const procent = ((priceDiff / startPrice) * 100 * leverage - (precent + parseFloat(record?.commission))).toFixed(2);
+
+                const fixProfit = record?.ordersId?.withoutLoss?.fix && !record?.ordersId?.TRAILING_STOP_MARKET?.fix
+                    ? parseFloat(record?.ordersId?.withoutLoss?.fixedPrice)
+                    : record?.ordersId?.TRAILING_STOP_MARKET?.fix
+                        ? record?.ordersId?.TRAILING_STOP_MARKET?.price
+                        : record?.ordersId?.TAKE_PROFIT_MARKET
+                            ? (((record?.ordersId?.TAKE_PROFIT_MARKET?.stopPrice - startPrice) * parseFloat(record?.openedConfig?.quantity))).toFixed(2)
+                            : 0;
+
                 return (
-                    <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-                        {record.positionData.positionSide === 'LONG' &&
-                            (() => {
-                                const precent = parseFloat(record?.positionData?.origQty) * parseFloat(positionsPrices[record?.positionData?.symbol]) * parseFloat(record?.openedConfig?.commission)
-                                const profit = ((((parseFloat(positionsPrices[record?.positionData?.symbol]) - parseFloat(record?.startPrice)) * parseFloat(record?.positionData?.origQty))) - (precent + parseFloat(record?.commission))).toFixed(2)
-                                const procent = ((((parseFloat(positionsPrices[record?.positionData?.symbol]) - parseFloat(record?.startPrice)) / parseFloat(record?.startPrice))) * 100 * parseFloat(record?.leverage) - (precent + parseFloat(record?.commission))).toFixed(2);
-                                const fixProfit = record?.ordersId?.withoutLoss?.fix && !record?.ordersId?.TRAILING_STOP_MARKET?.fix ? parseFloat(record?.ordersId?.withoutLoss?.fixedPrice) : record?.ordersId?.TRAILING_STOP_MARKET?.fix ? record?.ordersId?.TRAILING_STOP_MARKET?.price : record?.ordersId?.TAKE_PROFIT_MARKET ? ((((parseFloat(record?.ordersId?.TAKE_PROFIT_MARKET?.stopPrice) - parseFloat(record?.startPrice)) * ((parseFloat(record?.openedConfig?.quantity)))))).toFixed(2) : 0
-
-                                return !isNaN(profit) || !isNaN(procent) ?
-                                    <div style={{
-                                        position: 'relative',
-                                        display: 'flex',
-                                        justifyContent: 'center',
-                                        alignItems: 'center',
-                                        margin: '0 auto'
-
-                                    }}>
-                                        {!isNaN(positionsPrices[record?.positionData?.symbol]) && positionsPrices[record?.positionData?.symbol] ?
-                                            <div style={{
-                                                display: 'grid',
-                                                gridTemplateColumns: 'repeat(2, 1fr)',
-                                                gridTemplateRows: 'repeat(2, 1fr)',
-                                                gridColumnGap: '12px',
-                                                gridRowGap: '20px',
-                                                width: 'fit-content'
-                                            }}>
-                                                <div style={{display: 'flex', gridArea: '1 / 1 / 3 / 2'}}>
-                                                    <Badge.Ribbon placement='start' text="Цена" style={{
-                                                        top: '-14px',
-                                                        fontSize: '12px',
-                                                        background: '#1A1A1A'
-                                                    }}>
-                                                        <div style={{
-                                                            position: 'relative',
-                                                            display: 'flex',
-                                                            justifyContent: 'center',
-                                                            alignItems: 'center',
-                                                            minWidth: '120px',
-                                                            height: '100%',
-                                                            fontSize: '18px',
-                                                            gridArea: '1 / 1 / 3 / 2',
-                                                            width: '100%',
-                                                            border: '1px solid',
-                                                            borderRadius: '10px',
-                                                        }}
-                                                        >
-                                                            <span style={{position:'absolute', top:'10px', fontSize:'11px', fontWeight:'600'}}>{record?.startPrice}</span>
-                                                            {parseFloat(positionsPrices[record?.positionData?.symbol])}
-                                                        </div>
-                                                    </Badge.Ribbon>
-                                                </div>
-                                                {!record?.ordersId?.macd && record?.ordersId || !record?.ordersId?.withoutLoss && record?.ordersId || record?.ordersId?.withoutLoss && record?.ordersId?.TRAILING_STOP_MARKET && record?.ordersId || record?.ordersId?.TAKE_PROFIT_MARKET && record?.ordersId ?
-                                                    <div>
-                                                        <Badge.Ribbon placement='start' text="Фикс по алго"
-                                                                      style={{
-                                                                          top: '-14px',
-                                                                          fontSize: '12px',
-                                                                          background: '#1A1A1A'
-                                                                      }}>
-                                                            <div style={{
-                                                                display: 'flex',
-                                                                justifyContent: 'center',
-                                                                alignItems: 'center',
-                                                                fontSize: '14px',
-                                                                lineHeight: '16px',
-                                                                padding: '8px 2px',
-                                                                width: '100%',
-                                                                minWidth: '120px',
-                                                                maxWidth: '120px',
-                                                                border: '1px solid',
-                                                                borderRadius: '10px',
-                                                                color: fixProfit > 0 ? 'rgb(14, 203, 129,0.8)' : 'rgba(246, 70, 93, 0.8)',
-                                                                borderColor: '#fff'
-                                                            }}
-                                                            >
-                                                                {fixProfit ? fixProfit : 0}
-                                                            </div>
-                                                        </Badge.Ribbon>
-                                                    </div>
-                                                    :
-                                                    <></>
-                                                }
-
-                                                <div>
-                                                    <Badge.Ribbon placement='start' text="Прибыль"
-                                                                  style={{
-                                                                      top: '-14px',
-                                                                      fontSize: '12px',
-                                                                      background: '#1A1A1A'
-                                                                  }}>
-                                                        <div style={{
-                                                            display: 'flex',
-                                                            justifyContent: 'center',
-                                                            alignItems: 'center',
-                                                            fontSize: '14px',
-                                                            lineHeight: '16px',
-                                                            padding: '8px 2px',
-                                                            width: '100%',
-                                                            minWidth: '120px',
-                                                            maxWidth: '120px',
-                                                            border: '1px solid',
-                                                            borderRadius: '10px',
-                                                            color: profit >= 0 ? 'rgb(14, 203, 129,0.8)' : 'rgba(246, 70, 93, 0.8)',
-                                                            borderColor: '#fff'
-                                                        }}
-                                                        >
-                                                            {profit}
-                                                            <br/>
-                                                            {procent}%
-                                                        </div>
-                                                    </Badge.Ribbon>
-                                                </div>
-
-                                            </div>
-
-                                            :
-                                            <Spin
-                                                indicator={
-                                                    <LoadingOutlined
-                                                        style={{
-                                                            fontSize: 24,
-                                                        }}
-                                                        spin
-                                                    />
-                                                }
-                                            />
-                                        }
-
-                                    </div>
-
-                                    :
-                                    <Spin
-                                        indicator={
-                                            <LoadingOutlined
-                                                style={{
-                                                    fontSize: 24,
-                                                }}
-                                                spin
-                                            />
-                                        }
-                                    />;
-                            })()
-                        }
-                        {record.positionData.positionSide === 'SHORT' &&
-                            (() => {
-                                const precent = parseFloat(record?.positionData?.origQty) * parseFloat(positionsPrices[record?.positionData?.symbol]) * parseFloat(record?.openedConfig?.commission)
-                                const profit = ((((parseFloat(record?.startPrice) - parseFloat(positionsPrices[record?.positionData?.symbol])) * parseFloat(record?.positionData?.origQty)) - (precent + parseFloat(record?.commission)))).toFixed(2)
-                                const procent = ((((parseFloat(record?.startPrice) - parseFloat(positionsPrices[record?.positionData?.symbol])) / parseFloat(record?.startPrice))) * 100 * parseFloat(record?.leverage) - (precent + parseFloat(record?.commission))).toFixed(2);
-                               const fixProfit = record?.ordersId?.withoutLoss?.fix && !record?.ordersId?.TRAILING_STOP_MARKET?.fix ? parseFloat(record?.ordersId?.withoutLoss?.fixedPrice) : record?.ordersId?.TRAILING_STOP_MARKET?.fix ? record?.ordersId?.TRAILING_STOP_MARKET?.price : record?.ordersId?.TAKE_PROFIT_MARKET ? ((((parseFloat(record?.ordersId?.TAKE_PROFIT_MARKET?.stopPrice) - parseFloat(record?.startPrice)) * ((parseFloat(record?.openedConfig?.quantity)))))).toFixed(2) : 0
-
-                                return !isNaN(profit) || !isNaN(procent) ?
-                                    <div style={{
-                                        position: 'relative',
-                                        display: 'flex',
-                                        justifyContent: 'center',
-                                        alignItems: 'center',
-                                        margin: '0 auto'
-
-                                    }}>
-                                        {!isNaN(positionsPrices[record?.positionData?.symbol]) && positionsPrices[record?.positionData?.symbol] ?
-                                            <div style={{
-                                                display: 'grid',
-                                                gridTemplateColumns: 'repeat(2, 1fr)',
-                                                gridTemplateRows: 'repeat(2, 1fr)',
-                                                gridColumnGap: '12px',
-                                                gridRowGap: '20px',
-                                                width: 'fit-content'
-                                            }}>
-                                                <div style={{display: 'flex', gridArea: '1 / 1 / 3 / 2'}}>
-                                                    <Badge.Ribbon placement='start' text="Цена" style={{
-                                                        top: '-14px',
-                                                        fontSize: '12px',
-                                                        background: '#1A1A1A'
-                                                    }}>
-                                                        <div style={{
-                                                            position:'relative',
-                                                            display: 'flex',
-                                                            justifyContent: 'center',
-                                                            alignItems: 'center',
-                                                            minWidth: '120px',
-                                                            height: '100%',
-                                                            fontSize: '18px',
-                                                            gridArea: '1 / 1 / 3 / 2',
-                                                            width: '100%',
-                                                            border: '1px solid',
-                                                            borderRadius: '10px',
-                                                        }}
-                                                        >
-                                                            <span style={{
-                                                                position: 'absolute',
-                                                                top: '10px',
-                                                                fontSize: '11px',
-                                                                fontWeight: '600'
-                                                            }}>{record?.startPrice}</span>
-                                                            {(positionsPrices[record?.positionData?.symbol])}
-                                                        </div>
-                                                    </Badge.Ribbon>
-                                                </div>
-                                                {!record?.ordersId?.macd && record?.ordersId || !record?.ordersId?.withoutLoss && record?.ordersId || record?.ordersId?.withoutLoss && record?.ordersId?.TRAILING_STOP_MARKET && record?.ordersId || record?.ordersId?.TAKE_PROFIT_MARKET && record?.ordersId ?
-                                                    <div>
-                                                        <Badge.Ribbon placement='start' text="Фикс по алго"
-                                                                      style={{
-                                                                          top: '-14px',
-                                                                          fontSize: '12px',
-                                                                          background: '#1A1A1A'
-                                                                      }}>
-                                                            <div style={{
-                                                                display: 'flex',
-                                                                justifyContent: 'center',
-                                                                alignItems: 'center',
-                                                                fontSize: '14px',
-                                                                lineHeight: '16px',
-                                                                padding: '8px 2px',
-                                                                width: '100%',
-                                                                minWidth: '120px',
-                                                                maxWidth: '120px',
-                                                                border: '1px solid',
-                                                                borderRadius: '10px',
-                                                                color: fixProfit > 0 ? 'rgb(14, 203, 129,0.8)' : 'rgba(246, 70, 93, 0.8)',
-                                                                borderColor: '#fff'
-                                                            }}
-                                                            >
-                                                                {record?.ordersId?.withoutLoss?.fix ? fixProfit : 0}
-                                                            </div>
-                                                        </Badge.Ribbon>
-                                                    </div>
-                                                    :
-                                                    <></>
-                                                }
-
-
-                                                <div>
-                                                    <Badge.Ribbon placement='start' text="Прибыль"
-                                                                  style={{
-                                                                      top: '-14px',
-                                                                      fontSize: '12px',
-                                                                      background: '#1A1A1A'
-                                                                  }}>
-                                                        <div style={{
-                                                            display: 'flex',
-                                                            justifyContent: 'center',
-                                                            alignItems: 'center',
-                                                            fontSize: '14px',
-                                                            lineHeight: '16px',
-                                                            padding: '8px 2px',
-                                                            width: '100%',
-                                                            minWidth: '120px',
-                                                            maxWidth: '120px',
-                                                            border: '1px solid',
-                                                            borderRadius: '10px',
-                                                            color: profit > 0 ? 'rgb(14, 203, 129,0.8)' : 'rgba(246, 70, 93, 0.8)',
-                                                            borderColor: '#fff'
-                                                        }}
-                                                        >
-                                                            {profit}
-                                                            <br/>
-                                                            {procent}%
-                                                        </div>
-                                                    </Badge.Ribbon>
-                                                </div>
-                                            </div>
-
-                                            :
-                                            <Spin
-                                                indicator={
-                                                    <LoadingOutlined
-                                                        style={{
-                                                            fontSize: 24,
-                                                        }}
-                                                        spin
-                                                    />
-                                                }
-                                            />
-                                        }
-
-                                    </div>
-
-                                    :
-                                    <Spin
-                                        indicator={
-                                            <LoadingOutlined
-                                                style={{
-                                                    fontSize: 24,
-                                                }}
-                                                spin
-                                            />
-                                        }
-                                    />;
-                            })()
-                        }
-                        <div style={{display: 'flex', alignItems: 'center', marginLeft: '30px'}}>
-                            <Timeline
-                                items={[
-                                    {
-                                        style: {display: 'flex', paddingBottom: '16px', height: '34px'},
-                                        color: (record?.ordersId?.TAKE_PROFIT_MARKET ? '#f0d85a' : '#1A1A1A'),
-                                        children: 'Take Profit',
-                                    },
-                                    {
-                                        style: {display: 'flex', paddingBottom: '16px', height: '34px'},
-                                        color: (record?.ordersId?.withoutLoss ? '#f0d85a' : '#1A1A1A'),
-                                        children: <>БУ {record?.ordersId?.withoutLoss?.fixed || record?.ordersId?.withoutLoss?.fix ?
-                                            <span style={{color: 'rgb(14, 203, 129)'}}>FIXED</span> : ''}</>,
-                                    },
-                                    {
-                                        style: {display: 'flex', paddingBottom: '16px', height: '34px'},
-                                        color: (record?.ordersId?.TRAILING_STOP_MARKET ? '#f0d85a' : '#1A1A1A'),
-                                        children: <>CH {record?.ordersId?.TRAILING_STOP_MARKET?.fix ?
-                                            <><span style={{color: 'rgb(14, 203, 129)'}}>{parseInt(record?.ordersId?.TRAILING_STOP_MARKET?.index)+1}</span></> : ''}</>,
-                                    },
-                                    {
-                                        style: {display: 'flex', paddingBottom: '0', height: '0'},
-                                        color: (record?.ordersId?.macd ? '#f0d85a' : '#1A1A1A'),
-                                        children: 'MACD',
-                                    },
-                                ]}
-                            />
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(2, 1fr)',
+                            gridTemplateRows: 'repeat(2, 1fr)',
+                            gridColumnGap: '12px',
+                            gridRowGap: '20px',
+                            width: 'fit-content'
+                        }}>
+                            <div style={{ display: 'flex', gridArea: '1 / 1 / 3 / 2' }}>
+                                <PriceDisplay price={price} startPrice={startPrice} />
+                            </div>
+                            <ProfitDisplay profit={profit} procent={procent} fixProfit={fixProfit} />
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', marginLeft: '30px' }}>
+                            <OrderTimeline ordersId={record?.ordersId} />
                         </div>
                     </div>
                 );
             },
         },
         Table.EXPAND_COLUMN,
-
     ], [userTimezone, positionsPrices, closePosition, closeOrder]);
 
-    const renderExpandedRow = useCallback((record) =>
-            <div>
-                <div style={{display: 'flex', justifyContent: 'flex-end', width: '100%'}}>
-                    {record?.ordersId?.TAKE_PROFIT_MARKET && !record?.ordersId?.macd && !record?.ordersId?.withoutLoss ?
-                        <Button type='primary' style={{
-                            background: 'none',
-                            border: '1px solid',
-                            marginRight: '16px'
-                        }} onClick={() => closeOrder({
-                            symbol: record?.currency,
-                            id_order: record?.ordersId?.TAKE_PROFIT_MARKET?.orderId,
-                            id: record.key
-                        })}>
-                            Отключить Take Profit
-                        </Button>
-                        :
-                        <></>
-                    }
-                    {record?.ordersId?.withoutLoss && !record?.ordersId?.macd ?
-                        <Button type='primary' style={{
-                            background: 'none',
-                            border: '1px solid',
-                            marginRight: '16px'
-                        }} onClick={() => closeOrder({
-                            type: 'withoutLoss',
-                            symbol: record?.currency,
-                            id: record.key
-                        })}>
-                            Отключить БУ
-                        </Button>
-                        :
-                        <></>
-                    }
-                    {record?.ordersId?.TRAILING_STOP_MARKET ?
-                        <Button type='primary' style={{
-                            background: 'none',
-                            border: '1px solid',
-                            marginRight: '16px'
-                        }} onClick={() => closeOrder({
-                            type: 'trailing',
-                            symbol: record?.currency,
-                            id: record.key
-                        })}>
-                            Отключить Trailing
-                        </Button>
-                        :
-                        <></>
-                    }
-                    {record?.ordersId?.macd && !record?.ordersId?.TAKE_PROFIT_MARKET && !record?.ordersId?.withoutLoss ?
-                        <Button type='primary' style={{
-                            background: 'none',
-                            border: '1px solid',
-                            marginRight: '16px'
-                        }} onClick={() => closeOrder({
-                            ...record.openedConfig,
-                            // quantity: record?.positionData?.executedQty,
-                            id: record.key
-                        })}>
-                            Отключить macd
-                        </Button>
-                        :
-                        <></>
-                    }
-                    <Button danger onClick={() => closePosition({
-                        ...record.openedConfig,
-                        // quantity: record?.positionData?.executedQty,
-                        id: record?.positionData?.orderId
-                    })}>
-                        Закрыть позицию
+    const renderExpandedRow = useCallback((record) => (
+        <div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', width: '100%' }}>
+                {record?.ordersId?.TAKE_PROFIT_MARKET && !record?.ordersId?.macd && !record?.ordersId?.withoutLoss && (
+                    <Button type='primary' style={{ background: 'none', border: '1px solid', marginRight: '16px' }}
+                            onClick={() => closeOrder({ symbol: record?.currency, id_order: record?.ordersId?.TAKE_PROFIT_MARKET?.orderId, id: record.key })}>
+                        Отключить Take Profit
                     </Button>
-                    {record.description}
-                </div>
-                <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(3,1fr)',
-                    gridTemplateRows: '1fr',
-                    gridColumnGap: '10px',
-                    gridRowGap: '10px',
-                    marginTop: '10px'
-                }}>
-                    <span style={{margin: '0 auto'}}>Комиссия открытия: {parseFloat(record?.commission).toFixed(6)}<br/>Комиссия закрытия: {((record?.positionData?.origQty * parseFloat(positionsPrices[record?.positionData?.symbol])) * record?.openedConfig?.commission).toFixed(6)}</span>
-                    {record?.ordersId?.withoutLoss?.orderId ? <span style={{margin: '0 auto'}}><h4 style={{
-                        color: '#fff',
-                        margin: '0 0 4px'
-                    }}>БУ</h4>Фикс цена: {parseFloat(record?.ordersId?.withoutLoss?.fixedPrice).toFixed(6)}<br/>MIN отклонение: {parseFloat(record?.ordersId?.withoutLoss?.minDeviation).toFixed(6)}<br/>MAX отклонение: {parseFloat(record?.ordersId?.withoutLoss?.maxDeviation).toFixed(6)}</span> : <></>}
-                    {record?.ordersId?.TRAILING_STOP_MARKET?.orderId ? <span style={{margin: '0 auto'}}><h4 style={{
-                        color: '#fff',
-                        margin: '0 0 4px'
-                    }}>CH</h4>Фикс: {JSON.stringify(record?.ordersId?.TRAILING_STOP_MARKET?.arrayPrice)}<br/>Отклонение: {JSON.stringify(record?.ordersId?.TRAILING_STOP_MARKET?.arrayDeviation)}</span> : <></>}
-                </div>
+                )}
+                {record?.ordersId?.withoutLoss && !record?.ordersId?.macd && (
+                    <Button type='primary' style={{ background: 'none', border: '1px solid', marginRight: '16px' }}
+                            onClick={() => closeOrder({ type: 'withoutLoss', symbol: record?.currency, id: record.key })}>
+                        Отключить БУ
+                    </Button>
+                )}
+                {record?.ordersId?.TRAILING_STOP_MARKET && (
+                    <Button type='primary' style={{ background: 'none', border: '1px solid', marginRight: '16px' }}
+                            onClick={() => closeOrder({ type: 'trailing', symbol: record?.currency, id: record.key })}>
+                        Отключить Trailing
+                    </Button>
+                )}
+                {record?.ordersId?.macd && !record?.ordersId?.TAKE_PROFIT_MARKET && !record?.ordersId?.withoutLoss && (
+                    <Button type='primary' style={{ background: 'none', border: '1px solid', marginRight: '16px' }}
+                            onClick={() => closeOrder({ ...record.openedConfig, id: record.key })}>
+                        Отключить macd
+                    </Button>
+                )}
+                <Button danger onClick={() => closePosition({ ...record.openedConfig, id: record?.positionData?.orderId })}>
+                    Закрыть позицию
+                </Button>
             </div>
-        , [closeOrder, closePosition]);
+            <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(3,1fr)',
+                gridTemplateRows: '1fr',
+                gridColumnGap: '10px',
+                gridRowGap: '10px',
+                marginTop: '10px'
+            }}>
+        <span style={{ margin: '0 auto' }}>
+          Комиссия открытия: {parseFloat(record?.commission).toFixed(6)}
+            <br/>
+          Комиссия закрытия: {((record?.positionData?.origQty * parseFloat(positionsPrices[record?.positionData?.symbol])) * record?.openedConfig?.commission).toFixed(6)}
+        </span>
+                {record?.ordersId?.withoutLoss?.orderId && (
+                    <span style={{ margin: '0 auto' }}>
+            <h4 style={{ color: '#fff', margin: '0 0 4px' }}>БУ</h4>
+            Фикс цена: {parseFloat(record?.ordersId?.withoutLoss?.fixedPrice).toFixed(6)}
+                        <br/>
+            MIN отклонение: {parseFloat(record?.ordersId?.withoutLoss?.minDeviation).toFixed(6)}
+                        <br/>
+            MAX отклонение: {parseFloat(record?.ordersId?.withoutLoss?.maxDeviation).toFixed(6)}
+          </span>
+                )}
+                {record?.ordersId?.TRAILING_STOP_MARKET?.orderId && (
+                    <span style={{ margin: '0 auto' }}>
+            <h4 style={{ color: '#fff', margin: '0 0 4px' }}>CH</h4>
+            Фикс: {JSON.stringify(record?.ordersId?.TRAILING_STOP_MARKET?.arrayPrice)}
+                        <br/>
+            Отклонение: {JSON.stringify(record?.ordersId?.TRAILING_STOP_MARKET?.arrayDeviation)}
+          </span>
+                )}
+            </div>
+        </div>
+    ), [closeOrder, closePosition, positionsPrices]);
 
     return (
-        <div style={{width: '100%', background: '#0E0E0E'}}>
+        <div style={{ width: '100%', background: '#0E0E0E' }}>
             {positions && positions.length > 0 ? (
-                <div style={{display: 'flex', justifyContent: 'center', margin: '0 auto', width: '100%'}}>
+                <div style={{ display: 'flex', justifyContent: 'center', margin: '0 auto', width: '100%' }}>
                     <ConfigProvider
                         theme={{
                             components: {
@@ -557,10 +315,10 @@ const PositionActive = () => {
                     </ConfigProvider>
                 </div>
             ) : (
-                <div>Нет открытых позиций</div>
+                <div style={{ width: '100%', textAlign: 'center', color: '#fff' }}>Нет открытых позиций</div>
             )}
         </div>
     );
 };
 
-export default PositionActive;
+export default memo(PositionActive);

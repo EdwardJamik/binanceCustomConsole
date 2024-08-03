@@ -5,7 +5,7 @@ const Order = require("../models/orders.model");
 const User = require("../models/user.model");
 const streamPrice = require('../webSocket/binance.price.socket')
 const addwithoutLoss = require('../webSocket/binance.price.socket')
-const createSocket = require("../webSocket/binance.macd.socket");
+// const createSocket = require("../webSocket/binance.macd.socket");
 const {cancelOrder} = require("./cancelOrder");
 const {createEventsSocket} = require("../webSocket/binance.event.socket");
 const {bot} = require("../bot");
@@ -373,25 +373,25 @@ async function createOrder(orderElement, userData, id) {
 function createOrders(order,querySkeleton,user, key_1, key_2, binance_test){
     let queryElements = [], ordersId = {}
 
-        if (order?.macd?.status && !order?.withoutLoss?.status) {
-            ordersId.macd = {...order?.macd}
-            createSocket.createSocket({
-                id: user?.token,
-                symbol: order?.symbol,
-                interval: `${order?.macd?.timeFrame}`,
-                number: `${order?.macd?.number}`,
-                type: order?.macd?.type,
-                type_g: order?.macd?.type_g,
-                test: user?.binance_test,
-                user
-            })
-        }
+        // if (order?.macd?.status && !order?.withoutLoss?.status) {
+        //     ordersId.macd = {...order?.macd}
+        //     createSocket.createSocket({
+        //         id: user?.token,
+        //         symbol: order?.symbol,
+        //         interval: `${order?.macd?.timeFrame}`,
+        //         number: `${order?.macd?.number}`,
+        //         type: order?.macd?.type,
+        //         type_g: order?.macd?.type_g,
+        //         test: user?.binance_test,
+        //         user
+        //     })
+        // }
 
         if (order?.trailing?.status && order?.withoutLoss?.status) {
             ordersId = getWithoutLoss(order, user, querySkeleton,ordersId,key_1, key_2, binance_test)
-            console.log('WITHOUTLOSS --->>>',ordersId)
+            // console.log('WITHOUTLOSS --->>>',ordersId)
             ordersId = getTrailingCH({...order, currentPrice: ordersId?.withoutLoss?.fixedPrice}, user, querySkeleton, ordersId,key_1, key_2, binance_test)
-            console.log('TRAILING --->>>',ordersId)
+            // console.log('TRAILING --->>>',ordersId)
         } else {
             if(order?.trailing?.status){
                 ordersId = getTrailingCH(order, user, querySkeleton, ordersId, key_1, key_2, binance_test)
