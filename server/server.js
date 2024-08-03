@@ -8,6 +8,8 @@ const cors = require("cors");
 const SocketIOServer = require("./webSocket/websocket");
 const SOCKET_PORT = process.env.SOCKET_PORT || 5030;
 const requestIp = require('request-ip');
+const path = require("path");
+const fs = require("fs");
 
 app.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*');
@@ -27,6 +29,19 @@ app.use(cors({
     credentials: true,
 }));
 app.use(requestIp.mw());
+
+app.get('/api/v1/logs/:id', (req, res) => {
+    const id = req.params.id;
+    const logFile = path.join(__dirname, 'logs', `position-${id}.log`);
+
+    fs.readFile(logFile, 'utf8', (err, data) => {
+        if (err) {
+            console.error('Помилка при читанні лог-файлу', err);
+            return res.status(500).send('Помилка при читанні логів');
+        }
+        res.send(`<pre>${data}</pre>`);
+    });
+});
 
 const socketServer = new SocketIOServer(SOCKET_PORT,app);
 

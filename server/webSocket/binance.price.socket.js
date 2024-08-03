@@ -6,10 +6,11 @@ const Order = require('../models/orders.model')
 const User = require('../models/user.model')
 const {createOrder} = require("../util/createOrder");
 const {closePosition} = require("../util/closePosition");
+const logUserEvent = require("../util/logger");
 
 let currency = {}
 let user = {}
-
+let queue = {}
 let withoutLoss = {}
 
 let trailingCh = {}
@@ -90,34 +91,47 @@ async function wl(symbol, price) {
 
             if (!fix && !fixDeviation && parseFloat(fixedPrice) <= profit) {
                 await fixedPosition(order, true);
+                logUserEvent(`${order?.orderId}`, `FIXED БУ: ${order?.symbol}, current price: ${currentPrice}, fixedPrice:${fixedPrice}, profit: ${profit}`);
                 return { ...order, fix: true, remove: true };
             }
 
             if ((fix && !fixDeviation && parseFloat(minDeviation) >= profit) ||
                 (fix && fixDeviation && parseFloat(fixedPrice) >= profit)) {
-                await closePosition({
-                    symbol: order.symbol,
-                    positionSide,
-                    side: positionSide === 'LONG' ? 'SELL' : 'BUY',
-                    quantity: q,
-                    type: 'MARKET',
-                    id: orderId
-                }, order.userId, order.key_1, order.key_2, order.binance_test);
 
-                await Order.updateOne(
-                    { positionsId: orderId, userId: order.userId },
-                    { "ordersId.withoutLoss.closed": true }
-                );
+                const index = queue[currentSymbol].findIndex(item => item.orderId === orderId);
 
-                if (trailingCh[currentSymbol]) {
-                    trailingCh[currentSymbol] = trailingCh[currentSymbol].filter(findOrder => findOrder.orderId !== orderId);
+                if (index !== -1 && index === 0) {
+                    await closePosition({
+                        symbol: order.symbol,
+                        positionSide,
+                        side: positionSide === 'LONG' ? 'SELL' : 'BUY',
+                        quantity: q,
+                        type: 'MARKET',
+                        id: orderId
+                    }, order.userId, order.key_1, order.key_2, order.binance_test);
+
+                    await Order.updateOne(
+                        {positionsId: orderId, userId: order.userId},
+                        {"ordersId.withoutLoss.closed": true}
+                    );
+
+                    if (trailingCh[currentSymbol]) {
+                        trailingCh[currentSymbol] = trailingCh[currentSymbol].filter(findOrder => findOrder.orderId !== orderId);
+                    }
+
+                    queue[currentSymbol] = queue[currentSymbol].filter(findItem => findItem.orderId !== orderId);
+
+                    logUserEvent(`${order?.orderId}`, `БУ Close ORDER: current price: ${currentPrice}, fixedPrice:${fixedPrice}, profit: ${profit}`);
+
+                    return {...order, remove: true};
+                } else {
+                    logUserEvent(`${order?.orderId}`, `БУ NOT close order, waiting list : current price: ${currentPrice}, fixedPrice:${fixedPrice}, profit: ${profit}`);
                 }
-
-                return { ...order, remove: true };
             }
 
             if (fix && !fixDeviation && parseFloat(maxDeviation) <= profit) {
                 await deviationFixedPosition(order, true);
+                logUserEvent(`${order?.orderId}`, `FIXED DEVIATION БУ: ${order?.symbol}, current price: ${currentPrice}, maxDeviationPrice:${maxDeviation}, profit: ${profit}`);
                 return { ...order, fixDeviation: true };
             }
 
@@ -154,6 +168,8 @@ async function ch(symbol, price) {
                 let updatedOrder = { ...order, fix: true };
 
                 if (arrayPrice.length - 1 >= chIndex + 1) {
+                    logUserEvent(`${orderId}`, `FIXED CH AND NEXT STEP: ${order?.symbol}, current price: ${currentPrice}, current CH Price:${arrayPrice[chIndex]}, current CH Deviation: ${arrayDeviation[dIndex]}, next Step Price:${arrayPrice[chIndex + 1]}, next Step Deviation:${chIndex === 0 ? arrayDeviation[dIndex] : arrayDeviation[dIndex + 1]}`);
+
                     updatedOrder = {
                         ...updatedOrder,
                         price: arrayPrice[chIndex + 1],
@@ -161,10 +177,14 @@ async function ch(symbol, price) {
                         index: chIndex + 1,
                         dIndex: dIndex + 1
                     };
+
+
                 } else {
                     const lastArrayPriceIndex = arrayPrice.length - 1;
                     const newPrice = parseFloat(lastPrice) + parseFloat(arrayPrice[lastArrayPriceIndex]);
                     const newDeviation = newPrice - (parseFloat(lastPrice) * parseFloat(lastDeviation) / 100);
+
+                    logUserEvent(`${orderId}`, `FIXED CH AND NEXT STEP: ${order?.symbol}, current price: ${currentPrice}, current CH Price:${arrayPrice[chIndex]}, current CH Deviation: ${arrayDeviation[dIndex]}, next Step Price:${newPrice}, next Step Deviation:${newDeviation}`);
 
                     updatedOrder = {
                         ...updatedOrder,
@@ -177,29 +197,42 @@ async function ch(symbol, price) {
                     };
                 }
 
+
                 await fixedPosition(updatedOrder, false);
                 return updatedOrder;
 
             } else if (fix && parseFloat(deviation) >= profit) {
-                await closePosition({
-                    symbol: order.symbol,
-                    positionSide,
-                    side: positionSide === 'LONG' ? 'SELL' : 'BUY',
-                    quantity: q,
-                    type: 'MARKET',
-                    id: orderId
-                }, order.userId, order.key_1, order.key_2, order.binance_test);
 
-                if (withoutLoss[currentSymbol]) {
-                    withoutLoss[currentSymbol] = withoutLoss[currentSymbol].filter(findOrder => findOrder.orderId !== orderId);
+                const index = queue[order?.symbol].findIndex(item => item.orderId === orderId);
+
+                if(index !== -1 && index === 0)
+                {
+                    await closePosition({
+                        symbol: order.symbol,
+                        positionSide,
+                        side: positionSide === 'LONG' ? 'SELL' : 'BUY',
+                        quantity: q,
+                        type: 'MARKET',
+                        id: orderId
+                    }, order.userId, order.key_1, order.key_2, order.binance_test);
+
+                    if (withoutLoss[currentSymbol]) {
+                        withoutLoss[currentSymbol] = withoutLoss[currentSymbol].filter(findOrder => findOrder.orderId !== orderId);
+                    }
+
+                    await Order.updateOne(
+                        { positionsId: orderId, userId: order.userId },
+                        { "ordersId.TRAILING_STOP_MARKET.closed": true }
+                    );
+
+                    queue[currentSymbol] = queue[currentSymbol].filter(findItem => findItem.orderId !== orderId);
+
+                    logUserEvent(`${order?.orderId}`, `CH Close ORDER: ${order?.symbol}, current price: ${currentPrice}, currentCHPrice:${arrayPrice[chIndex]}, currentCHDeviation: ${arrayDeviation[dIndex]}`);
+
+                    return { ...order, remove: true };
+                } else {
+                    logUserEvent(`${order?.orderId}`, `CH NOT close order, waiting list : ${order?.symbol}, current price: ${currentPrice}, currentCHPrice:${arrayPrice[chIndex]}, currentCHDeviation: ${arrayDeviation[dIndex]}`);
                 }
-
-                await Order.updateOne(
-                    { positionsId: orderId, userId: order.userId },
-                    { "ordersId.TRAILING_STOP_MARKET.closed": true }
-                );
-
-                return { ...order, remove: true };
             }
 
             return order;
@@ -213,6 +246,19 @@ async function ch(symbol, price) {
 }
 
 function addwithoutLoss(settings){
+    if(queue[settings?.symbol]){
+        queue[settings?.symbol].push({orderId: settings?.orderId, price: parseFloat(settings?.fixedPrice)})
+    } else {
+        queue = {
+            [settings?.symbol]:[
+                {orderId: settings?.orderId, price: parseFloat(settings?.fixedPrice)}
+            ],
+            ...queue
+        }
+    }
+
+    queue[settings?.symbol].sort((a, b) => a.price - b.price);
+
     if(withoutLoss[settings?.symbol]){
         withoutLoss[settings?.symbol].push({...settings})
     } else {
@@ -226,6 +272,19 @@ function addwithoutLoss(settings){
 }
 
 function addTrailing(settings){
+    if(queue[settings?.symbol]){
+        queue[settings?.symbol].push({orderId: settings?.orderId, price: parseFloat(settings?.allPrice)})
+    } else {
+        queue = {
+            [settings?.symbol]:[
+                {orderId: settings?.orderId, price: parseFloat(settings?.allPrice)}
+            ],
+            ...queue
+        }
+    }
+
+    queue[settings?.symbol].sort((a, b) => a.price - b.price);
+
     if(trailingCh[settings?.symbol]){
         trailingCh[settings?.symbol].push({...settings})
     } else {

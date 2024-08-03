@@ -6,11 +6,10 @@ const User = require("../models/user.model");
 const {getAvailableBalance} = require("./getBalance");
 const {bot} = require("../bot");
 const socketServer = require("../server");
+const logUserEvent = require("./logger");
 const {TEST_BINANCE_API_DOMAIN,BINANCE_API_DOMAIN} = process.env
 
 async function closePosition(order, userId, key_1, key_2, binance_test) {
-
-
 
     const currencySkeleton = {
         symbol: order?.symbol,

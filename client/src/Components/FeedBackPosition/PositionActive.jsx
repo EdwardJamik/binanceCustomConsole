@@ -6,6 +6,7 @@ import dayjs from "dayjs";
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
 import { LoadingOutlined } from "@ant-design/icons";
+import {url} from "../../Config.jsx";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -121,7 +122,14 @@ const PositionActive = () => {
             key: 'name',
             align: 'center',
             width: '70px',
-            render: createdAt => <>{dayjs(createdAt).tz(userTimezone).format('DD.MM.YYYY')}<br/>{dayjs(createdAt).tz(userTimezone).format('HH:mm:ss')}</>,
+            render: (_,record) =>
+                <>
+                    {dayjs(record?.createdAt).tz(userTimezone).format('DD.MM.YYYY')}
+                    <br/>
+                    {dayjs(record?.createdAt).tz(userTimezone).format('HH:mm:ss')}
+                    <br/>
+                    <a target="_blank" href={`${url}/api/v1/logs/${record?.positionsId}`} style={{fontSize: '14px'}}>Logs</a>
+                </>,
         },
         {
             title: 'Актив',

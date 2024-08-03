@@ -52,6 +52,9 @@ const PositionBefore = () => {
                     <br/>
                     <br/>
                     {dayjs(record?.updatedAt).tz(userTimezone).format('DD.MM.YYYY')}<br/>{dayjs(record?.updatedAt).tz(userTimezone).format('HH:mm:ss')}
+                    <br/>
+                    <a target="_blank" href={`${url}/api/v1/logs/${record?.positionsId}`}
+                       style={{fontSize: '14px'}}>Logs</a>
                 </div>,
         },
         {

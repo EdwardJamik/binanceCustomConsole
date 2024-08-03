@@ -26,32 +26,37 @@ function getTrailingCH (order, user, querySkeleton, prevOrder, key_1, key_2, bin
         }
 
         let i = 0
+        let allPrice = 0
         for(const orderItem of order?.trailing?.option) {
 
             if (i === 0) {
-                const newDeviation = parseFloat(orderItem?.price) * parseFloat(orderItem?.deviation) / 100
+                const newDeviation = (parseFloat(orderItem?.price) * parseFloat(orderItem?.deviation) / 100).toFixed(4)
 
                 skeletonTrailing = {
                     ...skeletonTrailing,
                     arrayPrice: [parseFloat(orderItem?.price)],
-                    arrayDeviation: [newDeviation],
+                    arrayDeviation: [parseFloat(newDeviation)],
                 }
+
+                allPrice = allPrice + parseFloat(orderItem?.price)
             } else {
-                const newPrice = parseFloat(skeletonTrailing?.arrayPrice[i - 1]) + parseFloat(orderItem?.price)
-                const newDeviation = parseFloat(newPrice) - (parseFloat(orderItem?.price) * parseFloat(orderItem?.deviation) / 100)
+                const newPrice = (parseFloat(skeletonTrailing?.arrayPrice[i - 1]) + parseFloat(orderItem?.price)).toFixed(4)
+                const newDeviation = (parseFloat(newPrice) - (parseFloat(orderItem?.price) * parseFloat(orderItem?.deviation) / 100)).toFixed(4)
 
                 skeletonTrailing = {
                     ...skeletonTrailing,
-                    arrayPrice: [...skeletonTrailing?.arrayPrice, newPrice],
-                    arrayDeviation: [...skeletonTrailing?.arrayDeviation, newDeviation],
+                    arrayPrice: [...skeletonTrailing?.arrayPrice, parseFloat(newPrice)],
+                    arrayDeviation: [...skeletonTrailing?.arrayDeviation, parseFloat(newDeviation)],
                 }
+                allPrice = allPrice + parseFloat(newPrice)
+
             }
             i++
         }
 
         return {
             ...prevOrder,
-            trailing: {...skeletonTrailing}
+            trailing: {...skeletonTrailing,allPrice}
         }
     } catch (e) {
         console.error(e)
