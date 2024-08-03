@@ -106,7 +106,7 @@ async function wl(symbol, price) {
 
                 const index = queue[currentSymbol].findIndex(item => item.orderId === orderId);
 
-                if (index !== -1 && index === 0) {
+                if (index !== -1 && index === 0 || profit > 0) {
                     await closePosition({
                         symbol: order.symbol,
                         positionSide,
@@ -210,7 +210,7 @@ async function ch(symbol, price) {
 
                 const index = queue[order?.symbol].findIndex(item => item.orderId === orderId);
 
-                if(index !== -1 && index === 0)
+                if(index !== -1 && index === 0 || profit > 0)
                 {
                     await closePosition({
                         symbol: order.symbol,
