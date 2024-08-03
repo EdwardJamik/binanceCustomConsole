@@ -93,11 +93,11 @@ async function wl(symbol, price) {
                 await fixedPosition(order, true);
                 logUserEvent(`${order?.orderId}`, `FIXED БУ: ${order?.symbol}, current price: ${currentPrice}, fixedPrice:${fixedPrice}, profit: ${profit}`);
 
-                if(order?.trailing){
-                    return { ...order, fix: true, remove: true };
-                } else {
+                // if(order?.trailing){
+                //     return { ...order, fix: true, remove: true };
+                // } else {
                     return { ...order, fix: true};
-                }
+                // }
 
             }
 
