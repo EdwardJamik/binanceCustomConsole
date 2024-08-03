@@ -85,7 +85,7 @@ const OrderTimeline = memo(({ ordersId }) => (
         items={[
             { style: { display: 'flex', paddingBottom: '16px', height: '34px' }, color: (ordersId?.TAKE_PROFIT_MARKET ? '#f0d85a' : '#1A1A1A'), children: 'Take Profit' },
             { style: { display: 'flex', paddingBottom: '16px', height: '34px' }, color: (ordersId?.withoutLoss ? '#f0d85a' : '#1A1A1A'), children: <>БУ {ordersId?.withoutLoss?.fixed || ordersId?.withoutLoss?.fix ? <span style={{ color: 'rgb(14, 203, 129)' }}>FIXED</span> : ''}</> },
-            { style: { display: 'flex', paddingBottom: '16px', height: '34px' }, color: (ordersId?.TRAILING_STOP_MARKET ? '#f0d85a' : '#1A1A1A'), children: <>CH {ordersId?.TRAILING_STOP_MARKET?.fix ? <><span style={{ color: 'rgb(14, 203, 129)' }}>{parseInt(ordersId?.TRAILING_STOP_MARKET?.index) + 1}</span></> : ''}</> },
+            { style: { display: 'flex', paddingBottom: '16px', height: '34px' }, color: (ordersId?.TRAILING_STOP_MARKET ? '#f0d85a' : '#1A1A1A'), children: <>CH {ordersId?.TRAILING_STOP_MARKET?.fix ? <><span style={{ color: 'rgb(14, 203, 129)' }}>{parseInt(ordersId?.TRAILING_STOP_MARKET?.dIndex) + 1}</span></> : ''}</> },
             { style: { display: 'flex', paddingBottom: '0', height: '0' }, color: (ordersId?.macd ? '#f0d85a' : '#1A1A1A'), children: 'MACD' },
         ]}
     />
