@@ -56,7 +56,7 @@ function getTrailingCH (order, user, querySkeleton, prevOrder, key_1, key_2, bin
 
         return {
             ...prevOrder,
-            trailing: {...skeletonTrailing,allPrice}
+            trailing: {...skeletonTrailing,allPrice:parseFloat(allPrice).toFixed(4)}
         }
     } catch (e) {
         console.error(e)

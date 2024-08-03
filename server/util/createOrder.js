@@ -20,6 +20,7 @@ const {getWithoutLoss} = require("./getWithoutLoss");
 const {getTrailingCH} = require("./getTrailingCH");
 const addTrailing = require("../webSocket/binance.price.socket");
 const logUserEvent = require("./logger");
+const removeQueue = require("../webSocket/binance.price.socket");
 
 async function createOrder(orderElement, userData, id) {
     try {
@@ -172,7 +173,7 @@ async function createOrder(orderElement, userData, id) {
                                     addwithoutLoss.addwithoutLoss(ordersSystem?.withoutLoss)
                                 }
 
-                                if (order?.trailing?.status && !order?.withoutLoss?.status) {
+                                if (order?.trailing?.status) {
                                     addTrailing.addTrailing(ordersSystem?.trailing)
                                 }
 
@@ -274,7 +275,7 @@ async function createOrder(orderElement, userData, id) {
                                 percent = priceDecimal((((closePrice - startPrice) / startPrice) * 100 * parseFloat(updatedOrder?.leverage) - (openCommission+closeCommission)),3);
                                 profit = cumQuantityClose - cumQuantity
                             }
-
+                            await removeQueue.removeQueue(order?.id, updatedOrder?.currency)
                             logUserEvent(`${order?.id}`, `Close position: ${updatedOrder?.currency}, Response Binance -> ${JSON.stringify(response[0])}`);
 
                             const message = `${percent > 0 ? '🟢' : '🔴'} #${updatedOrder?.currency} продажа по рынку\n\n<b>Кол-во:</b> ${parseFloat(response[0]?.origQty)}\n<b>Цена покупки:</b> ${parseFloat(updatedOrder?.startPrice).toFixed(3)}\n\n<b>Цена продажи:</b> ${parseFloat(response[0]?.avgPrice).toFixed(3)}\n<b>Сумма:</b> ${parseFloat(response[0]?.cumQuote).toFixed(3)}\n<b>Прибыль:</b> ${parseFloat(parseFloat(profit)-(parseFloat(openCommission)+parseFloat(closeCommission))).toFixed(6)} (${percent > 0 ? '+' : ''}${percent}%)\n\n<b>id:</b> <code>${updatedOrder?._id}</code>`

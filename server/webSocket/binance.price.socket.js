@@ -178,7 +178,6 @@ async function ch(symbol, price) {
                         dIndex: dIndex + 1
                     };
 
-
                 } else {
                     const lastArrayPriceIndex = arrayPrice.length - 1;
                     const newPrice = parseFloat(lastPrice) + parseFloat(arrayPrice[lastArrayPriceIndex]);
@@ -246,15 +245,22 @@ async function ch(symbol, price) {
 }
 
 function addwithoutLoss(settings){
-    if(queue[settings?.symbol]){
-        queue[settings?.symbol].push({orderId: settings?.orderId, price: parseFloat(settings?.fixedPrice)})
+    if (queue[settings?.symbol]) {
+        const existingIndex = queue[settings?.symbol].findIndex(item => item.orderId === settings?.orderId);
+        if (existingIndex !== -1) {
+            if (parseFloat(settings?.allPrice) > queue[settings?.symbol][existingIndex].price) {
+                queue[settings?.symbol][existingIndex].price = parseFloat(settings?.fixedPrice);
+            }
+        } else {
+            queue[settings?.symbol].push({orderId: settings?.orderId, price: parseFloat(settings?.fixedPrice)});
+        }
     } else {
         queue = {
-            [settings?.symbol]:[
+            [settings?.symbol]: [
                 {orderId: settings?.orderId, price: parseFloat(settings?.fixedPrice)}
             ],
             ...queue
-        }
+        };
     }
 
     queue[settings?.symbol].sort((a, b) => a.price - b.price);
@@ -269,18 +275,41 @@ function addwithoutLoss(settings){
             ...withoutLoss
         }
     }
+
+    console.log(withoutLoss[settings?.symbol])
+    console.log(queue)
+}
+
+async function removeQueue(id,symbol){
+    const existingIndex = queue[symbol].findIndex(item => item.orderId === id);
+    if (existingIndex !== -1) {
+        queue[symbol] = queue[symbol].filter(findItem => findItem.orderId !== id);
+    }
+
+    queue[symbol].sort((a, b) => a.price - b.price);
+    
+    console.log(queue)
+
+    return;
 }
 
 function addTrailing(settings){
-    if(queue[settings?.symbol]){
-        queue[settings?.symbol].push({orderId: settings?.orderId, price: parseFloat(settings?.allPrice)})
+    if (queue[settings?.symbol]) {
+        const existingIndex = queue[settings?.symbol].findIndex(item => item.orderId === settings?.orderId);
+        if (existingIndex !== -1) {
+            if (parseFloat(settings?.allPrice) > queue[settings?.symbol][existingIndex].price) {
+                queue[settings?.symbol][existingIndex].price = parseFloat(settings?.allPrice);
+            }
+        } else {
+            queue[settings?.symbol].push({orderId: settings?.orderId, price: parseFloat(settings?.allPrice)});
+        }
     } else {
         queue = {
-            [settings?.symbol]:[
+            [settings?.symbol]: [
                 {orderId: settings?.orderId, price: parseFloat(settings?.allPrice)}
             ],
             ...queue
-        }
+        };
     }
 
     queue[settings?.symbol].sort((a, b) => a.price - b.price);
@@ -295,6 +324,10 @@ function addTrailing(settings){
             ...trailingCh
         }
     }
+
+    console.log(trailingCh[settings?.symbol])
+    console.log(queue)
+
 }
 
 async function removeInstrument(type, orderId, symbol, id, userId) {
@@ -351,8 +384,6 @@ async function removeInstrument(type, orderId, symbol, id, userId) {
             });
         }
     }
-
-
 }
 
 async function deviationFixedPosition(order,type) {
@@ -466,3 +497,4 @@ exports.removeStreamPrice = removeStreamPrice
 exports.addwithoutLoss = addwithoutLoss
 exports.addTrailing = addTrailing
 exports.removeInstrument = removeInstrument
+exports.removeQueue = removeQueue
