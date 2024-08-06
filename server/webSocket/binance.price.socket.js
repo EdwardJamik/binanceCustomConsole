@@ -91,7 +91,7 @@ async function wl(symbol, price) {
 
             if (!fix && !fixDeviation && parseFloat(fixedPrice) <= profit) {
                 await fixedPosition(order, true);
-                logUserEvent(`${order?.orderId}`, `FIXED БУ: ${order?.symbol}, current price: ${currentPrice}, fixedPrice:${fixedPrice}, profit: ${profit}`);
+                logUserEvent(`${orderId}`, `FIXED БУ: ${order?.symbol}, current price: ${currentPrice}, fixedPrice:${fixedPrice}, profit: ${profit}`);
 
                 // if(order?.trailing){
                 //     return { ...order, fix: true, remove: true };
@@ -127,11 +127,11 @@ async function wl(symbol, price) {
 
                     queue[currentSymbol] = queue[currentSymbol].filter(findItem => findItem.orderId !== orderId);
 
-                    logUserEvent(`${order?.orderId}`, `БУ Close ORDER: current price: ${currentPrice}, fixedPrice:${fixedPrice}, profit: ${profit}`);
+                    logUserEvent(`${orderId}`, `БУ Close ORDER: current price: ${currentPrice}, fixedPrice:${fixedPrice}, profit: ${profit}`);
 
                     return {...order, remove: true};
                 } else {
-                    logUserEvent(`${order?.orderId}`, `БУ NOT close order, waiting list : current price: ${currentPrice}, fixedPrice:${fixedPrice}, profit: ${profit}`);
+                    logUserEvent(`${orderId}`, `БУ NOT close order, waiting list : current price: ${currentPrice}, fixedPrice:${fixedPrice}, profit: ${profit}`);
                 }
             }
 

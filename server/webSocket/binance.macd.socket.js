@@ -17,7 +17,7 @@ let close = [],
 async function addSocket(id, symbol, interval, number, type, type_g, test, user) {
     try{
         console.log(id, symbol, interval, number, type, type_g, test)
-        const ws = new WebSocket(`wss://${test ? TEST_BINANCE_SOCKET_DOMAIN : BINANCE_SOCKET_DOMAIN}/ws/${symbol.toLowerCase()}@kline_${interval}`);
+        const ws = new WebSocket(`wss://${BINANCE_SOCKET_DOMAIN}/ws/${symbol.toLowerCase()}@kline_${interval}`);
         // fstream.binance // fstream.binancefuture
         ws.on('open', function open() {
 
@@ -36,7 +36,7 @@ async function addSocket(id, symbol, interval, number, type, type_g, test, user)
                 const findOrder = await Order.findOne({"ordersId.macd.status": true, "ordersId.macd.timeFrame":interval, "ordersId.macd.type_g":type_g, "ordersId.macd.type":type, "ordersId.macd.number":number, opened:true})
 
                 const order = {...findOrder?.openedConfig, side: findOrder?.openedConfig?.positionSide === 'LONG' ? 'SELL' : 'BUY'}
-                createOrder(order, user)
+                createOrder(order, user, false)
                 console.log(`[${new Date().toLocaleTimeString('uk-UA')}] MACD DISCONNECT:`,symbol,id,interval)
                 delete orders[`${symbol}@${interval}@${id}`]
                 delete macdCloseInput[`${symbol}@${interval}@${id}`]
@@ -213,11 +213,11 @@ async function addSocket(id, symbol, interval, number, type, type_g, test, user)
     }
 }
 
-async function createSocket({id, symbol, interval, number, type, type_g, test, user}) {
+async function macdSocket({id, symbol, interval, number, type, type_g, test, user}) {
     if (interval) {
             try {
                 console.log(`${new Date().toLocaleTimeString('uk-UA')}`,'START MACD:', symbol, interval) // fapi.binance // testnet.binancefuture
-                const response = await axios.get(`https://${test ? TEST_BINANCE_API_DOMAIN : BINANCE_API_DOMAIN}/fapi/v1/klines`, {
+                const response = await axios.get(`https://${ BINANCE_API_DOMAIN}/fapi/v1/klines`, {
                     params: {
                         symbol: symbol,
                         interval: interval,
@@ -252,4 +252,4 @@ async function createSocket({id, symbol, interval, number, type, type_g, test, u
     }
 }
 
-exports.createSocket = createSocket
+exports.macdSocket = macdSocket

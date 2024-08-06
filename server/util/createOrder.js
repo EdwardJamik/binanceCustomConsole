@@ -21,6 +21,7 @@ const {getTrailingCH} = require("./getTrailingCH");
 const addTrailing = require("../webSocket/binance.price.socket");
 const logUserEvent = require("./logger");
 const removeQueue = require("../webSocket/binance.price.socket");
+const {macdSocket} = require("../webSocket/binance.macd.socket");
 
 async function createOrder(orderElement, userData, id) {
     try {
@@ -275,7 +276,7 @@ async function createOrder(orderElement, userData, id) {
                                 percent = priceDecimal((((closePrice - startPrice) / startPrice) * 100 * parseFloat(updatedOrder?.leverage) - (openCommission+closeCommission)),3);
                                 profit = cumQuantityClose - cumQuantity
                             }
-                            await removeQueue.removeQueue(order?.id, updatedOrder?.currency)
+                            await removeQueue.removeQueue(order?.id, updatedOrder?.currency).catch((e)=>{})
                             logUserEvent(`${order?.id}`, `Close position: ${updatedOrder?.currency}, Response Binance -> ${JSON.stringify(response[0])}`);
 
                             const message = `${percent > 0 ? '🟢' : '🔴'} #${updatedOrder?.currency} продажа по рынку\n\n<b>Кол-во:</b> ${parseFloat(response[0]?.origQty)}\n<b>Цена покупки:</b> ${parseFloat(updatedOrder?.startPrice).toFixed(3)}\n\n<b>Цена продажи:</b> ${parseFloat(response[0]?.avgPrice).toFixed(3)}\n<b>Сумма:</b> ${parseFloat(response[0]?.cumQuote).toFixed(3)}\n<b>Прибыль:</b> ${parseFloat(parseFloat(profit)-(parseFloat(openCommission)+parseFloat(closeCommission))).toFixed(6)} (${percent > 0 ? '+' : ''}${percent}%)\n\n<b>id:</b> <code>${updatedOrder?._id}</code>`
@@ -381,19 +382,19 @@ async function createOrder(orderElement, userData, id) {
 function createOrders(order,querySkeleton,user, key_1, key_2, binance_test){
     let queryElements = [], ordersId = {}
 
-        // if (order?.macd?.status && !order?.withoutLoss?.status) {
-        //     ordersId.macd = {...order?.macd}
-        //     createSocket.createSocket({
-        //         id: user?.token,
-        //         symbol: order?.symbol,
-        //         interval: `${order?.macd?.timeFrame}`,
-        //         number: `${order?.macd?.number}`,
-        //         type: order?.macd?.type,
-        //         type_g: order?.macd?.type_g,
-        //         test: user?.binance_test,
-        //         user
-        //     })
-        // }
+        if (order?.macd?.status ) {
+            ordersId.macd = {...order?.macd}
+            macdSocket({
+                id: user?.token,
+                symbol: order?.symbol,
+                interval: `${order?.macd?.timeFrame}`,
+                number: `${order?.macd?.number}`,
+                type: order?.macd?.type,
+                type_g: order?.macd?.type_g,
+                test: user?.binance_test,
+                user
+            })
+        }
 
         if (order?.trailing?.status && order?.withoutLoss?.status) {
             ordersId = getWithoutLoss(order, user, querySkeleton,ordersId,key_1, key_2, binance_test, order?.trailing?.status)
