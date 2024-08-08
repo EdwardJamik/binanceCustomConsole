@@ -4,9 +4,9 @@ const axios = require("axios");
 const Order = require("../models/orders.model");
 const User = require("../models/user.model");
 const streamPrice = require('../webSocket/binance.price.socket')
-const addwithoutLoss = require('../webSocket/binance.price.socket')
+// const addwithoutLoss = require('../webSocket/binance.price.socket')
 // const createSocket = require("../webSocket/binance.macd.socket");
-const {cancelOrder} = require("./cancelOrder");
+// const {cancelOrder} = require("./cancelOrder");
 const {createEventsSocket} = require("../webSocket/binance.event.socket");
 const {bot} = require("../bot");
 const {TEST_BINANCE_API_DOMAIN,BINANCE_API_DOMAIN} = process.env
@@ -18,7 +18,7 @@ const {createTakeProfit} = require("./takeProfit");
 const {roundDecimal} = require("./roundToFirstSign");
 const {getWithoutLoss} = require("./getWithoutLoss");
 const {getTrailingCH} = require("./getTrailingCH");
-const addTrailing = require("../webSocket/binance.price.socket");
+// const addTrailing = require("../webSocket/binance.price.socket");
 const logUserEvent = require("./logger");
 const removeQueue = require("../webSocket/binance.price.socket");
 const {macdSocket} = require("../webSocket/binance.macd.socket");
@@ -28,7 +28,7 @@ async function createOrder(orderElement, userData, id) {
         const {order} = orderElement;
         let currencySkeleton = [], multiplePrice = [],TAKE_PROFIT_MARKET
 
-        console.log(order)
+        // console.log(order)
 
         let user
         let userId = id
@@ -121,19 +121,46 @@ async function createOrder(orderElement, userData, id) {
 
                 console.log(`[${new Date().toLocaleTimeString('uk-UA')}] CREATE ORDER: ${JSON.stringify(currencySkeleton)}`)
 
-                let queryStringBatch = `batchOrders=${encodeURIComponent(JSON.stringify([...currencySkeleton]))}&timestamp=${Date.now()}`;
-                const signatureBatch = getSignature(queryStringBatch, key_2)
-                axios.post(`https://${user?.binance_test ? TEST_BINANCE_API_DOMAIN : BINANCE_API_DOMAIN}/fapi/v1/batchOrders?${queryStringBatch}&signature=${signatureBatch}`, null, {
-                    headers,
-                }).then(async (responseBatch) => {
+                const orderGroups = [];
+                for (let i = 0; i < currencySkeleton.length; i += 5) {
+                    orderGroups.push(currencySkeleton.slice(i, i + 5));
+                }
+
+                let allResponses = [];
+
+                for (const group of orderGroups) {
+                    let queryStringBatch = `batchOrders=${encodeURIComponent(JSON.stringify(group))}&timestamp=${Date.now()}`;
+                    const signatureBatch = getSignature(queryStringBatch, key_2);
+
+                    try {
+                        const responseBatch = await axios.post(`https://${user?.binance_test ? TEST_BINANCE_API_DOMAIN : BINANCE_API_DOMAIN}/fapi/v1/batchOrders?${queryStringBatch}&signature=${signatureBatch}`, null, {
+                            headers,
+                        });
+
+                        allResponses = allResponses.concat(responseBatch.data);
+                    } catch (e) {
+                        console.log(`[${new Date().toLocaleTimeString('uk-UA')}] ERROR CREATE ORDER BATCH: ${JSON.stringify(e?.response?.data)}`);
+                        socketServer.socketServer.io.to(id).emit('userMessage', {
+                            type: 'error',
+                            message: `${e?.response?.data?.msg}`
+                        });
+                        // Можливо, тут варто додати обробку помилок, наприклад, перервати цикл або повернути помилку
+                    }
+                }
+
+                // let queryStringBatch = `batchOrders=${encodeURIComponent(JSON.stringify([...currencySkeleton]))}&timestamp=${Date.now()}`;
+                // const signatureBatch = getSignature(queryStringBatch, key_2)
+                // axios.post(`https://${user?.binance_test ? TEST_BINANCE_API_DOMAIN : BINANCE_API_DOMAIN}/fapi/v1/batchOrders?${queryStringBatch}&signature=${signatureBatch}`, null, {
+                //     headers,
+                // }).then(async (responseBatch) => {
 
 
                     createEventsSocket(user?.binance_test, key_1, key_2)
 
-                    const TAKE_PROFIT_MARKET = responseBatch?.data?.find(order => order.type === 'TAKE_PROFIT_MARKET');
+                    const TAKE_PROFIT_MARKET = allResponses?.find(order => order.type === 'TAKE_PROFIT_MARKET');
                     // const TRAILING_STOP_MARKET = responseBatch?.data?.find(order => order.type === 'TRAILING_STOP_MARKET');
 
-                    getMultipleOrderDetails(responseBatch?.data, key_1, key_2, user?.binance_test).then(async (response) => {
+                    getMultipleOrderDetails(allResponses, key_1, key_2, user?.binance_test).then(async (response) => {
 
                         // console.log(responseBatch?.data)
                         let ordersSystem = []
@@ -170,13 +197,13 @@ async function createOrder(orderElement, userData, id) {
 
                                 streamPrice.streamPrice([position?.symbol], String(user?._id), user?.binance_test)
 
-                                if (order?.withoutLoss?.status) {
-                                    addwithoutLoss.addwithoutLoss(ordersSystem?.withoutLoss)
-                                }
-
-                                if (order?.trailing?.status) {
-                                    addTrailing.addTrailing(ordersSystem?.trailing)
-                                }
+                                // if (order?.withoutLoss?.status) {
+                                //     addwithoutLoss.addwithoutLoss(ordersSystem?.withoutLoss)
+                                // }
+                                //
+                                // if (order?.trailing?.status) {
+                                //     addTrailing.addTrailing(ordersSystem?.trailing)
+                                // }
 
                                 socketServer.socketServer.io.to(id).emit('updateOnePosition', {
                                     positionList: [{key: String(newPosition?._id), ...newPosition?._doc}],
@@ -208,16 +235,16 @@ async function createOrder(orderElement, userData, id) {
                             message: `${e?.response?.data?.msg}`
                         });
                     })
-                }).catch((e) => {
-                    console.log(e)
-                    console.log(`[${new Date().toLocaleTimeString('uk-UA')}] ERROR CREATE ORDER STEP 2: ${JSON.stringify(e?.response?.data)}`)
-
-                    socketServer.socketServer.io.to(id).emit('userMessage', {
-                        type: 'error',
-                        message: `${e?.response?.data?.msg}`
-                    });
-
-                })
+                // }).catch((e) => {
+                //     console.log(e)
+                //     console.log(`[${new Date().toLocaleTimeString('uk-UA')}] ERROR CREATE ORDER STEP 2: ${JSON.stringify(e?.response?.data)}`)
+                //
+                //     socketServer.socketServer.io.to(id).emit('userMessage', {
+                //         type: 'error',
+                //         message: `${e?.response?.data?.msg}`
+                //     });
+                //
+                // })
             } catch (e) {
                 console.error(e)
             }
@@ -276,7 +303,7 @@ async function createOrder(orderElement, userData, id) {
                                 percent = priceDecimal((((closePrice - startPrice) / startPrice) * 100 * parseFloat(updatedOrder?.leverage) - (openCommission+closeCommission)),3);
                                 profit = cumQuantityClose - cumQuantity
                             }
-                            await removeQueue.removeQueue(order?.id, updatedOrder?.currency).catch((e)=>{})
+                            // await removeQueue.removeQueue(order?.id, updatedOrder?.currency).catch((e)=>{})
                             logUserEvent(`${order?.id}`, `Close position: ${updatedOrder?.currency}, Response Binance -> ${JSON.stringify(response[0])}`);
 
                             const message = `${percent > 0 ? '🟢' : '🔴'} #${updatedOrder?.currency} продажа по рынку\n\n<b>Кол-во:</b> ${parseFloat(response[0]?.origQty)}\n<b>Цена покупки:</b> ${parseFloat(updatedOrder?.startPrice).toFixed(3)}\n\n<b>Цена продажи:</b> ${parseFloat(response[0]?.avgPrice).toFixed(3)}\n<b>Сумма:</b> ${parseFloat(response[0]?.cumQuote).toFixed(3)}\n<b>Прибыль:</b> ${parseFloat(parseFloat(profit)-(parseFloat(openCommission)+parseFloat(closeCommission))).toFixed(6)} (${percent > 0 ? '+' : ''}${percent}%)\n\n<b>id:</b> <code>${updatedOrder?._id}</code>`

@@ -60,6 +60,25 @@
   justify-content: center;
   flex-wrap: wrap;
   margin-top: 20px;
+
+  & .settings{
+    position: relative;
+    /*padding-top: 18px;*/
+
+    & .setting_container{
+      position: relative;
+      max-width: 600px;
+      margin: 0 auto;
+      padding-top: 18px;
+      height: 20px;
+      & .setting_selector{
+        position: absolute;
+        top: 0;
+        right: 0;
+
+      }
+    }
+  }
 }
 
 .leverage{

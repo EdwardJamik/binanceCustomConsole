@@ -21,6 +21,10 @@ const userSchema = new mongoose.Schema({
         type: Boolean,
         default:true
     },
+    preSetting: {
+        type: String,
+        default: 'custom'
+    },
     token: {
         type: String,
         default:null

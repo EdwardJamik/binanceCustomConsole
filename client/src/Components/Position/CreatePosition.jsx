@@ -14,6 +14,7 @@ const CreatePosition = () => {
     const user = useSelector(state => state.currentOption)
     const userOptions = useSelector(state => state)
     const commission = useSelector(state => state.commission.commissionTaker)
+    const isOpened = useSelector(state => state.isOpened)
 
     const price = usePrice()
 
@@ -131,7 +132,8 @@ const CreatePosition = () => {
                     },
                 }}
             >
-                <Button style={{width: '160px', height: '50px'}} type="primary" size="large" onClick={() => openPosition()}
+
+                <Button disabled={!isOpened} style={isOpened ? {opacity:'1', width: '160px', height: '50px'} : {opacity:'0.6', width: '160px', height: '50px'}} type="primary" size="large" onClick={() => openPosition()}
                         loading={user?.currency !== symbol && price > 0}>
                     Open {user?.positionSide ? 'LONG':'SHORT'}
                 </Button>

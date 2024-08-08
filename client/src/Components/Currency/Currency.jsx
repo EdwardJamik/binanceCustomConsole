@@ -1,17 +1,30 @@
-import React, {useEffect, useState} from 'react';
-import {ConfigProvider, Badge, InputNumber, Select, Spin, Switch, TreeSelect, Cascader, Button} from "antd";
+import React, {useEffect, useRef, useState} from 'react';
+import {
+    ConfigProvider,
+    Badge,
+    InputNumber,
+    Select,
+    Spin,
+    Switch,
+    TreeSelect,
+    Cascader,
+    Button,
+    Input,
+    Space, Divider
+} from "antd";
 import axios from "axios";
 import {url} from "../../Config.jsx";
 import {useDispatch, useSelector} from "react-redux";
 import {useSocket} from "../Socket/Socket.jsx";
 import {usePrice} from "../PriceSocket/PriceSocket.jsx";
 import AmountPosition from "../AmountPosition.jsx";
-import {LoadingOutlined} from "@ant-design/icons";
+import {LoadingOutlined, PlusOutlined} from "@ant-design/icons";
 import {openNotificationWithIcon} from "../Notification/NotificationService.jsx";
 import MacdSetting from "../MacdSetting/MacdSetting.jsx";
 import TrailingCh from "../InputsComponents/TrailingCH.jsx";
 import WithoutLoss from "../InputsComponents/WithoutLoss.jsx";
 import FavoriteModal from "../FavoriteModal/FavoriteModal.jsx";
+import PreSetting from "../PreSetting/PreSetting.jsx";
 
 const Currency = () => {
 
@@ -28,14 +41,24 @@ const Currency = () => {
     const favoriteOption = useSelector(state => state.favorite)
     const user = useSelector(state => state.currentOption)
     const commission = useSelector(state => state.commission)
+    const [timer, setTimer] = useState(null);
 
-    const onChange = (value, before) => {
-        if (before) {
-            if(parseFloat(value) !== parseFloat(user?.adjustLeverage)) {
-                dispatch({type: 'SET_LEVERAGE', payload: parseInt(value)});
-                socket.emit('setLeverage', {value, price});
+    const onChange = (value) => {
+        // if (before) {
+        if (parseFloat(value) !== parseFloat(user?.adjustLeverage)) {
+            dispatch({ type: 'SET_LEVERAGE', payload: parseInt(value) });
 
+            // Очищуємо попередній таймер, якщо він є
+            if (timer) {
+                clearTimeout(timer);
             }
+
+            // Встановлюємо новий таймер
+            const newTimer = setTimeout(() => {
+                socket.emit('setLeverage', { value, price });
+            }, 1000);
+
+            setTimer(newTimer);
         }
     };
 
@@ -234,144 +257,64 @@ const Currency = () => {
 
             </div>
 
-            <div style={{
-                display: 'grid',
-                gridTemplateColumns: `repeat(${!isSaved ? '3' :'2'}, 1fr)`,
-                gridTemplateRows: '1fr',
-                gridColumnGap: '0px',
-                gridRowGap: '0px',
-                maxWidth: '600px',
-                width: '100%',
-                margin: '0 auto',
-            }}>
-                <ConfigProvider
-                    theme={{
-                        token: {
-                            colorFillContentHover: isSaved ? `rgba(14, 203, 129, 0.3)` : `rgba(246, 70, 93, 0.3)`,
-                            colorFillSecondary: isSaved ? `rgba(14, 203, 129, 0.3)` : `rgba(246, 70, 93, 0.3)`,
-
-                            colorFill: isSaved ? `rgba(14, 203, 129, 0.3)` : `rgba(246, 70, 93, 0.3)`,
-
-                            colorPrimary: isSaved ? `rgba(14, 203, 129, 0.3)` : `rgba(246, 70, 93, 0.3)`,
-
-                            colorPrimaryHover: isSaved ? `rgba(14, 203, 129, 0.3)` : `rgba(246, 70, 93, 0.3)`,
-                            colorInfoHover: isSaved ? `rgba(14, 203, 129, 0.3)` : `rgba(246, 70, 93, 0.3)`,
-                            optionSelectedFontWeight: '600',
-
-                            colorPrimaryBg: isSaved ? `rgba(14, 203, 129, 0.3)` : `rgba(246, 70, 93, 0.3)`,
-                            colorFillTertiary: isSaved ? `rgba(14, 203, 129, 0.3)` : `rgba(246, 70, 93, 0.3)`,
-                            colorTextTertiary: isSaved ? `rgba(14, 203, 129, 0.3)` : `rgba(246, 70, 93, 0.3)`,
-                            colorTextQuaternary: isSaved ? `rgba(14, 203, 129, 0.3)` : `rgba(246, 70, 93, 0.3)`,
-                            colorFillQuaternary: isSaved ? `rgba(14, 203, 129, 0.3)` : `rgba(246, 70, 93, 0.3)`,
-                        },
-                    }}
-                >
-                    <div style={{margin:'0 auto'}}>
-                        <Switch style={{maxWidth: '100px'}} value={isSaved} size={'small'} checkedChildren="избранные" unCheckedChildren="избранные"
-                                onChange={(checked) => setSaved(checked)}
-                        />
-                    </div>
-
-                </ConfigProvider>
-            </div>
-
-            <div style={{
-                display: 'grid',
-                gridTemplateColumns: `repeat(${!isSaved ? '3' :'2'}, 1fr)`,
-
-                gridTemplateRows: '1fr',
-                gridColumnGap: '0px',
-                gridRowGap: '0px',
-                maxWidth: '600px',
-                width: '100%',
-                margin: '0 auto',
-            }}>
-                <div className="currency" style={{flexDirection: 'column'}} onMouseEnter={handleMouseEnter}
-                     onMouseLeave={handleMouseLeave}>
-                    <span className='gold' style={{margin:'0'}}>Валютная пара:</span>
+            <div className='settings'>
+                <PreSetting/>
+                <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: `repeat(${!isSaved ? '3' : '2'}, 1fr)`,
+                    gridTemplateRows: '1fr',
+                    gridColumnGap: '0px',
+                    gridRowGap: '0px',
+                    maxWidth: '600px',
+                    width: '100%',
+                    margin: '0 auto',
+                }}>
                     <ConfigProvider
                         theme={{
                             token: {
-                                colorTextSecondary: '#000',
-                                colorTextLabel: '#000',
-                                colorTextBase: '#fff',
-                                optionFontSize: '20px',
-                                colorPrimaryHover: 'none',
+                                colorFillContentHover: isSaved ? `rgba(14, 203, 129, 0.3)` : `rgba(246, 70, 93, 0.3)`,
+                                colorFillSecondary: isSaved ? `rgba(14, 203, 129, 0.3)` : `rgba(246, 70, 93, 0.3)`,
+
+                                colorFill: isSaved ? `rgba(14, 203, 129, 0.3)` : `rgba(246, 70, 93, 0.3)`,
+
+                                colorPrimary: isSaved ? `rgba(14, 203, 129, 0.3)` : `rgba(246, 70, 93, 0.3)`,
+
+                                colorPrimaryHover: isSaved ? `rgba(14, 203, 129, 0.3)` : `rgba(246, 70, 93, 0.3)`,
+                                colorInfoHover: isSaved ? `rgba(14, 203, 129, 0.3)` : `rgba(246, 70, 93, 0.3)`,
                                 optionSelectedFontWeight: '600',
-                                boxShadowSecondary: 'none',
 
-                                colorBgContainer: 'none',
-                                colorBorder: 'none',
-
-                                colorPrimaryBg: 'rgba(240, 216, 90, 0.4)',
-                                fontWeight: '600',
-                                colorFillTertiary: 'rgba(240, 216, 90, 0.4)',
-                                colorTextTertiary: '#000',
-                                colorTextQuaternary: 'rgba(240, 216, 90, 0.4)',
+                                colorPrimaryBg: isSaved ? `rgba(14, 203, 129, 0.3)` : `rgba(246, 70, 93, 0.3)`,
+                                colorFillTertiary: isSaved ? `rgba(14, 203, 129, 0.3)` : `rgba(246, 70, 93, 0.3)`,
+                                colorTextTertiary: isSaved ? `rgba(14, 203, 129, 0.3)` : `rgba(246, 70, 93, 0.3)`,
+                                colorTextQuaternary: isSaved ? `rgba(14, 203, 129, 0.3)` : `rgba(246, 70, 93, 0.3)`,
+                                colorFillQuaternary: isSaved ? `rgba(14, 203, 129, 0.3)` : `rgba(246, 70, 93, 0.3)`,
                             },
                         }}
                     >
-                        {isSaved ?
-
-                            <div style={{display:'flex', alignItems:'center'}}>
-                                <Select
-                                    className='currency_selector'
-                                    showSearch
-                                    mode="tags"
-                                    style={{
-                                        width:'300px'
-                                    }}
-                                    // value={currencyList}
-                                    dropdownStyle={{
-                                        background: 'rgba(7, 7, 7, 0.6)',
-                                        border: 'none',
-                                        padding: '10px 8px 10px',
-                                        textAlign: 'center',
-                                        width:'300px'
-                                    }}
-                                    placeholder="Выберите избранные"
-                                    filterOption={(input, option) =>
-                                        option?.label.toLowerCase().includes(input.toLowerCase())
-                                    }
-                                    filterSort={(optionA, optionB) =>
-                                        (optionA?.label ?? '').toLowerCase().localeCompare((optionB?.label ?? '').toLowerCase())
-                                    }
-                                    onChange={handleCurrencyChange}
-                                    options={favoriteOption}
-                                />
-                                <FavoriteModal/>
-                            </div>
-                            :
-                            <Select
-                                className='currency_selector'
-                                showSearch
-                                dropdownStyle={{
-                                    background: 'rgba(7, 7, 7, 0.6)',
-                                    border: 'none',
-                                    padding: '10px 8px 10px',
-                                    textAlign: 'center',
-                                    // width: '160px',
-                                }}
-                                placeholder="Валютные пары"
-                                filterOption={(input, option) =>
-                                    option?.label.toLowerCase().includes(input.toLowerCase())
-                                }
-                                open={currencyListOpen}
-                                filterSort={(optionA, optionB) =>
-                                    (optionA?.label ?? '').toLowerCase().localeCompare((optionB?.label ?? '').toLowerCase())
-                                }
-                                onChange={handleCurrencyChange}
-                                options={isCurrency}
-                                defaultValue={symbol}
+                        <div style={{margin: '0 auto'}}>
+                            <Switch style={{maxWidth: '100px'}} value={isSaved} size={'small'}
+                                    checkedChildren="избранные" unCheckedChildren="избранные"
+                                    onChange={(checked) => setSaved(checked)}
                             />
-                        }
+                        </div>
 
                     </ConfigProvider>
-
                 </div>
-                {!isSaved ?
-                    <div className="leverage">
-                        <span className='gold'>Кредитное плечо:</span>
+
+                <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: `repeat(${!isSaved ? '3' : '2'}, 1fr)`,
+
+                    gridTemplateRows: '1fr',
+                    gridColumnGap: '0px',
+                    gridRowGap: '0px',
+                    maxWidth: '600px',
+                    width: '100%',
+                    margin: '0 auto',
+                }}>
+                    <div className="currency" style={{flexDirection: 'column'}} onMouseEnter={handleMouseEnter}
+                         onMouseLeave={handleMouseLeave}>
+                        <span className='gold' style={{margin: '0'}}>Валютная пара:</span>
                         <ConfigProvider
                             theme={{
                                 token: {
@@ -394,23 +337,103 @@ const Currency = () => {
                                 },
                             }}
                         >
-                            <InputNumber
-                                className='inputLeverage'
-                                min={1}
-                                max={user?.maxAdjustLeverage}
-                                // value={user?.adjustLeverage}
-                                defaultValue={user?.adjustLeverage}
-                                onChange={(value) => onChange(value, false)}
-                                onBlur={(e) => onChange(e.target.value, true)}
-                                changeOnWheel
-                                style={{width: `100%`}}
-                            />
+                            {isSaved ?
+
+                                <div style={{display: 'flex', alignItems: 'center'}}>
+                                    <Select
+                                        className='currency_selector'
+                                        showSearch
+                                        mode="tags"
+                                        style={{
+                                            width: '300px'
+                                        }}
+                                        // value={currencyList}
+                                        dropdownStyle={{
+                                            background: 'rgba(7, 7, 7, 0.6)',
+                                            border: 'none',
+                                            padding: '10px 8px 10px',
+                                            textAlign: 'center',
+                                            width: '300px'
+                                        }}
+                                        placeholder="Выберите избранные"
+                                        filterOption={(input, option) =>
+                                            option?.label.toLowerCase().includes(input.toLowerCase())
+                                        }
+                                        filterSort={(optionA, optionB) =>
+                                            (optionA?.label ?? '').toLowerCase().localeCompare((optionB?.label ?? '').toLowerCase())
+                                        }
+                                        onChange={handleCurrencyChange}
+                                        options={favoriteOption}
+                                    />
+                                    <FavoriteModal/>
+                                </div>
+                                :
+                                <Select
+                                    className='currency_selector'
+                                    showSearch
+                                    dropdownStyle={{
+                                        background: 'rgba(7, 7, 7, 0.6)',
+                                        border: 'none',
+                                        padding: '10px 8px 10px',
+                                        textAlign: 'center',
+                                        // width: '160px',
+                                    }}
+                                    placeholder="Валютные пары"
+                                    filterOption={(input, option) =>
+                                        option?.label.toLowerCase().includes(input.toLowerCase())
+                                    }
+                                    open={currencyListOpen}
+                                    filterSort={(optionA, optionB) =>
+                                        (optionA?.label ?? '').toLowerCase().localeCompare((optionB?.label ?? '').toLowerCase())
+                                    }
+                                    onChange={handleCurrencyChange}
+                                    options={isCurrency}
+                                    defaultValue={symbol}
+                                />
+                            }
                         </ConfigProvider>
                     </div>
-                    :
-                    <></>
-                }
-                <div className="leverage">
+                    {!isSaved ?
+                        <div className="leverage">
+                            <span className='gold'>Кредитное плечо:</span>
+                            <ConfigProvider
+                                theme={{
+                                    token: {
+                                        colorTextSecondary: '#000',
+                                        colorTextLabel: '#000',
+                                        colorTextBase: '#fff',
+                                        optionFontSize: '20px',
+                                        colorPrimaryHover: 'none',
+                                        optionSelectedFontWeight: '600',
+                                        boxShadowSecondary: 'none',
+
+                                        colorBgContainer: 'none',
+                                        colorBorder: 'none',
+
+                                        colorPrimaryBg: 'rgba(240, 216, 90, 0.4)',
+                                        fontWeight: '600',
+                                        colorFillTertiary: 'rgba(240, 216, 90, 0.4)',
+                                        colorTextTertiary: '#000',
+                                        colorTextQuaternary: 'rgba(240, 216, 90, 0.4)',
+                                    },
+                                }}
+                            >
+                                <InputNumber
+                                    className='inputLeverage'
+                                    min={1}
+                                    max={user?.maxAdjustLeverage}
+                                    defaultValue={user?.adjustLeverage}
+                                    onChange={(value) => onChange(value)}
+                                    // onBlur={(e) => onChange(e.target.value, true)}
+                                    changeOnWheel
+                                    style={{width: `100%`}}
+                                />
+                            </ConfigProvider>
+                        </div>
+                        :
+                        <></>
+                    }
+                    <div className="leverage">
                     <span style={{
                         right: '20%',
                         left: 'auto',
@@ -420,92 +443,92 @@ const Currency = () => {
                         color: 'rgba(255,255,255,.6)',
                         fontSize: '14px'
                     }}>{isPrecent && !isNaN(isPrecent) ? <>&#8776; {isPrecent.toLocaleString()}</> : <></>}</span>
-                    <span className='gold'>Сумма инвестиции:</span>
-                    <ConfigProvider
-                        theme={{
-                            token: {
-                                colorTextSecondary: '#000',
-                                colorTextLabel: '#000',
-                                colorTextBase: '#fff',
-                                optionFontSize: '20px',
-                                colorPrimaryHover: 'none',
-                                optionSelectedFontWeight: '600',
-                                boxShadowSecondary: 'none',
+                        <span className='gold'>Сумма инвестиции:</span>
+                        <ConfigProvider
+                            theme={{
+                                token: {
+                                    colorTextSecondary: '#000',
+                                    colorTextLabel: '#000',
+                                    colorTextBase: '#fff',
+                                    optionFontSize: '20px',
+                                    colorPrimaryHover: 'none',
+                                    optionSelectedFontWeight: '600',
+                                    boxShadowSecondary: 'none',
 
-                                colorBgContainer: 'none',
-                                colorBorder: 'none',
+                                    colorBgContainer: 'none',
+                                    colorBorder: 'none',
 
-                                colorPrimaryBg: 'rgba(240, 216, 90, 0.4)',
-                                fontWeight: '600',
-                                colorFillTertiary: 'rgba(240, 216, 90, 0.4)',
-                                colorTextTertiary: '#000',
-                                colorTextQuaternary: 'rgba(240, 216, 90, 0.4)',
-                            },
-                        }}
-                    >
-                        {price ?
-                            <>
-                                <InputNumber
-                                    className='inputLeverage size'
-                                    min={(user.minCurrencyPrice * price).toFixed(2)}
-                                    value={roundDecimbal(user.amount)}
-                                    step={0.1}
-                                    onChange={(value) => onChangeSize(value, false)}
-                                    onBlur={() => onChangeSize(user?.amount, true)}
-                                    changeOnWheel
-                                    style={{width: `100%`}}
-                                />
-
-                            </>
-                            :
-                            <Spin
-                                indicator={
-                                    <LoadingOutlined
-                                        style={{
-                                            fontSize: 24,
-                                        }}
-                                        spin
+                                    colorPrimaryBg: 'rgba(240, 216, 90, 0.4)',
+                                    fontWeight: '600',
+                                    colorFillTertiary: 'rgba(240, 216, 90, 0.4)',
+                                    colorTextTertiary: '#000',
+                                    colorTextQuaternary: 'rgba(240, 216, 90, 0.4)',
+                                },
+                            }}
+                        >
+                            {price ?
+                                <>
+                                    <InputNumber
+                                        className='inputLeverage size'
+                                        min={(user.minCurrencyPrice * price).toFixed(2)}
+                                        value={roundDecimbal(user.amount)}
+                                        step={0.1}
+                                        onChange={(value) => onChangeSize(value, false)}
+                                        onBlur={() => onChangeSize(user?.amount, true)}
+                                        changeOnWheel
+                                        style={{width: `100%`}}
                                     />
-                                }
-                            />
-                        }
 
-                    </ConfigProvider>
+                                </>
+                                :
+                                <Spin
+                                    indicator={
+                                        <LoadingOutlined
+                                            style={{
+                                                fontSize: 24,
+                                            }}
+                                            spin
+                                        />
+                                    }
+                                />
+                            }
+
+                        </ConfigProvider>
+                    </div>
                 </div>
-            </div>
-            <div style={{
-                maxWidth: '500px',
-                margin: '0 auto',
-                width: '100%',
-                padding: '40px 20px',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                textAlign: 'center'
-            }}>
-                <div>
-                    <ConfigProvider
-                        theme={{
-                            token: {
-                                colorTextSecondary: '#000',
-                                colorTextLabel: '#000',
-                                colorTextBase: '#fff',
-                                optionFontSize: '20px',
-                                colorPrimaryHover: 'rgba(240, 216, 90, 0.4)',
-                                optionSelectedFontWeight: '600',
-                                boxShadowSecondary: 'none',
+                <div style={{
+                    maxWidth: '500px',
+                    margin: '0 auto',
+                    width: '100%',
+                    padding: '40px 20px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    textAlign: 'center'
+                }}>
+                    <div>
+                        <ConfigProvider
+                            theme={{
+                                token: {
+                                    colorTextSecondary: '#000',
+                                    colorTextLabel: '#000',
+                                    colorTextBase: '#fff',
+                                    optionFontSize: '20px',
+                                    colorPrimaryHover: 'rgba(240, 216, 90, 0.4)',
+                                    optionSelectedFontWeight: '600',
+                                    boxShadowSecondary: 'none',
 
-                                colorBgContainer: 'none',
-                                colorBorder: 'none',
+                                    colorBgContainer: 'none',
+                                    colorBorder: 'none',
 
-                                colorPrimaryBg: 'rgba(240, 216, 90, 0.4)',
-                                fontWeight: '600',
-                                colorFillTertiary: 'rgba(240, 216, 90, 0.4)',
-                                colorTextTertiary: '#000',
-                                colorTextQuaternary: 'rgba(240, 216, 90, 0.4)',
-                            },
-                        }}
-                    >
+                                    colorPrimaryBg: 'rgba(240, 216, 90, 0.4)',
+                                    fontWeight: '600',
+                                    colorFillTertiary: 'rgba(240, 216, 90, 0.4)',
+                                    colorTextTertiary: '#000',
+                                    colorTextQuaternary: 'rgba(240, 216, 90, 0.4)',
+                                },
+                            }}
+                        >
                             <Switch
                                 checkedChildren="TP"
                                 unCheckedChildren="TP"
@@ -514,154 +537,157 @@ const Currency = () => {
                                     changeOrders(checked, 1)
                                 }}
                             />
-                    </ConfigProvider>
+                        </ConfigProvider>
 
-                </div>
+                    </div>
 
-                <div>
-                    <ConfigProvider
-                        theme={{
-                            token: {
-                                colorTextSecondary: '#000',
-                                colorTextLabel: '#000',
-                                colorTextBase: '#fff',
-                                optionFontSize: '20px',
-                                colorPrimaryHover: 'rgba(240, 216, 90, 0.4)',
-                                optionSelectedFontWeight: '600',
-                                boxShadowSecondary: 'none',
+                    <div>
+                        <ConfigProvider
+                            theme={{
+                                token: {
+                                    colorTextSecondary: '#000',
+                                    colorTextLabel: '#000',
+                                    colorTextBase: '#fff',
+                                    optionFontSize: '20px',
+                                    colorPrimaryHover: 'rgba(240, 216, 90, 0.4)',
+                                    optionSelectedFontWeight: '600',
+                                    boxShadowSecondary: 'none',
 
-                                colorBgContainer: 'none',
-                                colorBorder: 'none',
+                                    colorBgContainer: 'none',
+                                    colorBorder: 'none',
 
-                                colorPrimaryBg: 'rgba(240, 216, 90, 0.4)',
-                                fontWeight: '600',
-                                colorFillTertiary: 'rgba(240, 216, 90, 0.4)',
-                                colorTextTertiary: '#000',
-                                colorTextQuaternary: 'rgba(240, 216, 90, 0.4)',
-                            },
-                        }}
-                    >
+                                    colorPrimaryBg: 'rgba(240, 216, 90, 0.4)',
+                                    fontWeight: '600',
+                                    colorFillTertiary: 'rgba(240, 216, 90, 0.4)',
+                                    colorTextTertiary: '#000',
+                                    colorTextQuaternary: 'rgba(240, 216, 90, 0.4)',
+                                },
+                            }}
+                        >
 
                             <Switch checkedChildren="БУ" unCheckedChildren="БУ" checked={user?.withoutLoss?.status}
                                     onChange={(checked) => {
                                         changeOrders(checked, 2)
                                     }}/>
-                    </ConfigProvider>
-                </div>
+                        </ConfigProvider>
+                    </div>
 
-                <div>
-                    <ConfigProvider
-                        theme={{
-                            token: {
-                                colorTextSecondary: '#000',
-                                colorTextLabel: '#000',
-                                colorTextBase: '#fff',
-                                optionFontSize: '20px',
-                                colorPrimaryHover: 'rgba(240, 216, 90, 0.4)',
-                                optionSelectedFontWeight: '600',
+                    <div>
+                        <ConfigProvider
+                            theme={{
+                                token: {
+                                    colorTextSecondary: '#000',
+                                    colorTextLabel: '#000',
+                                    colorTextBase: '#fff',
+                                    optionFontSize: '20px',
+                                    colorPrimaryHover: 'rgba(240, 216, 90, 0.4)',
+                                    optionSelectedFontWeight: '600',
 
-                                colorPrimaryBg: 'rgba(240, 216, 90, 0.4)',
-                                fontWeight: '600',
-                                colorFillTertiary: 'rgba(240, 216, 90, 0.4)',
-                                colorTextTertiary: 'rgba(240, 216, 90, 0.4)',
-                                colorTextQuaternary: 'rgba(240, 216, 90, 0.4)',
-                            },
-                        }}
-                    >
+                                    colorPrimaryBg: 'rgba(240, 216, 90, 0.4)',
+                                    fontWeight: '600',
+                                    colorFillTertiary: 'rgba(240, 216, 90, 0.4)',
+                                    colorTextTertiary: 'rgba(240, 216, 90, 0.4)',
+                                    colorTextQuaternary: 'rgba(240, 216, 90, 0.4)',
+                                },
+                            }}
+                        >
 
                             <Switch checkedChildren="CH" unCheckedChildren="CH" checked={user?.trailing?.status}
                                     onChange={(checked) => {
                                         changeOrders(checked, 3)
                                     }}/>
-                    </ConfigProvider>
-                </div>
-                <div>
-                    <ConfigProvider
-                        theme={{
-                            token: {
-                                colorTextSecondary: '#000',
-                                colorTextLabel: '#000',
-                                colorTextBase: '#fff',
-                                optionFontSize: '20px',
-                                colorPrimaryHover: 'rgba(240, 216, 90, 0.4)',
-                                optionSelectedFontWeight: '600',
-                                boxShadowSecondary: 'none',
+                        </ConfigProvider>
+                    </div>
+                    <div>
+                        <ConfigProvider
+                            theme={{
+                                token: {
+                                    colorTextSecondary: '#000',
+                                    colorTextLabel: '#000',
+                                    colorTextBase: '#fff',
+                                    optionFontSize: '20px',
+                                    colorPrimaryHover: 'rgba(240, 216, 90, 0.4)',
+                                    optionSelectedFontWeight: '600',
+                                    boxShadowSecondary: 'none',
 
-                                colorBgContainer: 'none',
-                                colorBorder: 'none',
+                                    colorBgContainer: 'none',
+                                    colorBorder: 'none',
 
-                                colorPrimaryBg: 'rgba(240, 216, 90, 0.4)',
-                                fontWeight: '600',
-                                colorFillTertiary: 'rgba(240, 216, 90, 0.4)',
-                                colorTextTertiary: '#000',
-                                colorTextQuaternary: 'rgba(240, 216, 90, 0.4)',
-                            },
-                        }}
-                    >
+                                    colorPrimaryBg: 'rgba(240, 216, 90, 0.4)',
+                                    fontWeight: '600',
+                                    colorFillTertiary: 'rgba(240, 216, 90, 0.4)',
+                                    colorTextTertiary: '#000',
+                                    colorTextQuaternary: 'rgba(240, 216, 90, 0.4)',
+                                },
+                            }}
+                        >
                             <Switch checkedChildren="macd" unCheckedChildren="macd" checked={user?.macd?.status}
                                     onChange={(checked) => {
                                         changeOrders(checked, 4)
                                     }}/>
-                    </ConfigProvider>
+                        </ConfigProvider>
+                    </div>
                 </div>
-            </div>
 
-            <div style={{
-                display: "flex",
-                maxWidth: '800px',
-                margin: '0 auto',
-                gap: '30px'
-            }}>
+                <div style={{
+                    display: "flex",
+                    maxWidth: '800px',
+                    margin: '0 auto',
+                    gap: '30px'
+                }}>
 
-                {user?.takeProfit?.status ?
-                    <div className='dashboard_item' style={{padding: '10px', display: 'inline-block'}}>
-                        <Badge.Ribbon text="Take profit"
-                                      style={{top: '-20px', right: '-18px', background: 'rgba(240, 216, 90, 0.4)'}}>
+                    {user?.takeProfit?.status ?
+                        <div className='dashboard_item' style={{padding: '10px', display: 'inline-block'}}>
+                            <Badge.Ribbon text="Take profit"
+                                          style={{top: '-20px', right: '-18px', background: 'rgba(240, 216, 90, 0.4)'}}>
 
-                            <AmountPosition type='takeProfit'/>
+                                <AmountPosition type='takeProfit'/>
 
-                        </Badge.Ribbon>
-                    </div>
-                    :
-                    <></>
-                }
-                {user?.withoutLoss?.status ?
-                    <div className='dashboard_item' style={{padding: '10px'}}>
-                        <Badge.Ribbon text="БУ"
-                                      style={{top: '-20px', right: '-18px', background: 'rgba(240, 216, 90, 0.4)'}}>
+                            </Badge.Ribbon>
+                        </div>
+                        :
+                        <></>
+                    }
+                    {user?.withoutLoss?.status ?
+                        <div className='dashboard_item' style={{padding: '10px'}}>
+                            <Badge.Ribbon text="БУ"
+                                          style={{top: '-20px', right: '-18px', background: 'rgba(240, 216, 90, 0.4)'}}>
 
-                            <WithoutLoss/>
+                                <WithoutLoss/>
 
-                        </Badge.Ribbon>
-                    </div>
-                    :
-                    <></>
-                }
+                            </Badge.Ribbon>
+                        </div>
+                        :
+                        <></>
+                    }
 
-                {user?.trailing?.status ?
-                    <div className='dashboard_item' style={{padding: '10px'}}>
-                        <Badge.Ribbon text="CH" style={{top: '-20px', right: '-18px', background: 'rgba(240, 216, 90, 0.4)'}}>
+                    {user?.trailing?.status ?
+                        <div className='dashboard_item' style={{padding: '10px'}}>
+                            <Badge.Ribbon text="CH"
+                                          style={{top: '-20px', right: '-18px', background: 'rgba(240, 216, 90, 0.4)'}}>
 
-                            <TrailingCh/>
+                                <TrailingCh/>
 
-                        </Badge.Ribbon>
-                    </div>
-                    :
-                    <></>
-                }
+                            </Badge.Ribbon>
+                        </div>
+                        :
+                        <></>
+                    }
 
-                {user?.macd?.status  ?
-                    <div className='dashboard_item' style={{display: 'inline-block', padding: '10px', height: '200px'}}>
-                        <Badge.Ribbon text="MACD"
-                                      style={{top: '-20px', right: '-18px', background: 'rgba(240, 216, 90, 0.4)'}}>
+                    {user?.macd?.status ?
+                        <div className='dashboard_item'
+                             style={{display: 'inline-block', padding: '10px', height: '200px'}}>
+                            <Badge.Ribbon text="MACD"
+                                          style={{top: '-20px', right: '-18px', background: 'rgba(240, 216, 90, 0.4)'}}>
 
-                            <MacdSetting/>
+                                <MacdSetting/>
 
-                        </Badge.Ribbon>
-                    </div>
-                    :
-                    <></>
-                }
+                            </Badge.Ribbon>
+                        </div>
+                        :
+                        <></>
+                    }
+                </div>
             </div>
         </>
     );

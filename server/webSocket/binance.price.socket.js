@@ -75,9 +75,21 @@ async function wl(symbol, price) {
         const currentPrice = parseFloat(price);
         const currentSymbol = symbol;
 
-        if (!currentSymbol || !currentPrice || !withoutLoss[currentSymbol]) return;
+        const positions = await Order.find({
+            opened: true,
+            currency: symbol,
+            "ordersId.withoutLoss": { $exists: true, $ne: null },
+            $or: [
+                {"ordersId.withoutLoss.closed": false},
+                { "ordersId.withoutLoss.closed": { $exists: false } },
+                { "ordersId.TRAILING_STOP_MARKET.fix": false },
+                { "ordersId.TRAILING_STOP_MARKET.fix": { $exists: false } }
+            ]
+        }, { "ordersId.withoutLoss": 1, opened: 1, currency: 1 });
 
-        const updatedOrders = await Promise.all(withoutLoss[currentSymbol].map(async (order) => {
+        if (!currentSymbol || !currentPrice || !positions) return;
+
+        await Promise.all(positions.map(async (order) => {
             if (order?.remove) return order;
 
             const { positionSide, q, commissionPrecent, startPrice, commission, fixedPrice, fix, fixDeviation, minDeviation, maxDeviation, orderId, trailing } = order;
@@ -89,24 +101,22 @@ async function wl(symbol, price) {
 
             if (!profit) return order;
 
-            if (!fix && !fixDeviation && parseFloat(fixedPrice) <= profit) {
+            if (!fix && !fixDeviation && parseFloat(fixedPrice) <= profit && !order?.remove) {
+                await Order.updateOne(
+                    {_id: String(order?._id)},
+                    {
+                        $set: {
+                            "ordersId.withoutLoss.fix": true,
+                        }
+                    }
+                );
                 await fixedPosition(order, true);
                 logUserEvent(`${orderId}`, `FIXED БУ: ${order?.symbol}, current price: ${currentPrice}, fixedPrice:${fixedPrice}, profit: ${profit}`);
-
-                // if(order?.trailing){
-                //     return { ...order, fix: true, remove: true };
-                // } else {
-                    return { ...order, fix: true};
-                // }
-
             }
 
-            if ((fix && !fixDeviation && parseFloat(minDeviation) >= profit) ||
-                (fix && fixDeviation && parseFloat(fixedPrice) >= profit)) {
+            if ((fix && !fixDeviation && parseFloat(minDeviation) >= profit && !order?.remove) ||
+                (fix && fixDeviation && parseFloat(fixedPrice) >= profit && !order?.remove)) {
 
-                const index = queue[currentSymbol].findIndex(item => item.orderId === orderId);
-
-                if (index !== -1 && index === 0 || profit > 0) {
                     await closePosition({
                         symbol: order.symbol,
                         positionSide,
@@ -114,38 +124,40 @@ async function wl(symbol, price) {
                         quantity: q,
                         type: 'MARKET',
                         id: orderId
-                    }, order.userId, order.key_1, order.key_2, order.binance_test);
+                    }, order.userId, order.key_1, order.key_2, order.binance_test, String(order?._id));
 
                     await Order.updateOne(
-                        {positionsId: orderId, userId: order.userId},
-                        {"ordersId.withoutLoss.closed": true}
+                        {_id: String(order?._id)},
+                            {
+                                $set: {
+                                    "ordersId.withoutLoss.closed": true,
+                                    "ordersId.withoutLoss.remove": true
+                                }
+                            }
                     );
-
-                    if (trailingCh[currentSymbol]) {
-                        trailingCh[currentSymbol] = trailingCh[currentSymbol].filter(findOrder => findOrder.orderId !== orderId);
-                    }
-
-                    queue[currentSymbol] = queue[currentSymbol].filter(findItem => findItem.orderId !== orderId);
 
                     logUserEvent(`${orderId}`, `БУ Close ORDER: current price: ${currentPrice}, fixedPrice:${fixedPrice}, profit: ${profit}`);
 
-                    return {...order, remove: true};
-                } else {
-                    logUserEvent(`${orderId}`, `БУ NOT close order, waiting list : current price: ${currentPrice}, fixedPrice:${fixedPrice}, profit: ${profit}`);
-                }
+                    return;
             }
 
-            if (fix && !fixDeviation && parseFloat(maxDeviation) <= profit) {
+            if (fix && !fixDeviation && parseFloat(maxDeviation) <= profit && !order?.remove) {
+
+                await Order.updateOne(
+                    {_id: String(order?._id)},
+                        {
+                            $set: {
+                                "ordersId.withoutLoss.fixDeviation": true
+                            }
+                        }
+                );
                 await deviationFixedPosition(order, true);
                 logUserEvent(`${order?.orderId}`, `FIXED DEVIATION БУ: ${order?.symbol}, current price: ${currentPrice}, maxDeviationPrice:${maxDeviation}, profit: ${profit}`);
-                return { ...order, fixDeviation: true };
+                return;
             }
 
-            return order;
+            return;
         }));
-
-        withoutLoss[currentSymbol] = updatedOrders.filter(order => !order.remove);
-
     } catch (e) {
         console.error(e);
     }
@@ -156,12 +168,23 @@ async function ch(symbol, price) {
         const currentPrice = parseFloat(price);
         const currentSymbol = symbol;
 
-        if (!currentSymbol || !currentPrice || !trailingCh[currentSymbol]) return;
+        const positions = await Order.find({
+            opened: true,
+            currency: symbol,
+            "ordersId.TRAILING_STOP_MARKET": { $exists: true, $ne: null },
+            $or: [
+                {"ordersId.TRAILING_STOP_MARKET.closed": false},
+                { "ordersId.TRAILING_STOP_MARKET.closed": { $exists: false } }
+            ]
+        }, { "ordersId.withoutLoss": 1, opened: 1, currency: 1 });
 
-        const updatedOrders = await Promise.all(trailingCh[currentSymbol].map(async (order) => {
+        if (!currentSymbol || !currentPrice || !positions) return;
+
+        await Promise.all(positions.map(async (order) => {
             if (order?.remove) return order;
 
             const { positionSide, q, commissionPrecent, startPrice, commission, price: orderPrice, deviation, fix, arrayPrice, arrayDeviation, lastPrice, lastDeviation, orderId } = order;
+
             const chIndex = parseInt(order?.index);
             const dIndex = parseInt(order?.dIndex);
 
@@ -170,19 +193,23 @@ async function ch(symbol, price) {
                 ? ((currentPrice - parseFloat(startPrice)) * parseFloat(q)) - (precent + parseFloat(commission))
                 : ((parseFloat(startPrice) - currentPrice) * parseFloat(q)) - (precent + parseFloat(commission));
 
-            if (parseFloat(orderPrice) <= profit) {
-                let updatedOrder = { ...order, fix: true };
+            if (parseFloat(orderPrice) <= profit && !order?.remove) {
 
                 if (arrayPrice.length - 1 >= chIndex + 1) {
                     logUserEvent(`${orderId}`, `FIXED CH AND NEXT STEP: ${order?.symbol}, current price: ${currentPrice}, current CH Price:${arrayPrice[chIndex]}, current CH Deviation: ${arrayDeviation[dIndex]}, next Step Price:${arrayPrice[chIndex + 1]}, next Step Deviation:${chIndex === 0 ? arrayDeviation[dIndex] : arrayDeviation[dIndex + 1]}`);
 
-                    updatedOrder = {
-                        ...updatedOrder,
-                        price: arrayPrice[chIndex + 1],
-                        deviation: chIndex === 0 ? arrayDeviation[dIndex] : arrayDeviation[dIndex + 1],
-                        index: chIndex + 1,
-                        dIndex: dIndex + 1
-                    };
+                    await Order.updateOne(
+                        {_id: String(order?._id)},
+                        {
+                            $set: {
+                                "ordersId.TRAILING_STOP_MARKET.fix": true,
+                                "ordersId.TRAILING_STOP_MARKET.price": arrayPrice[chIndex + 1],
+                                "ordersId.TRAILING_STOP_MARKET.deviation": chIndex === 0 ? arrayDeviation[dIndex] : arrayDeviation[dIndex + 1],
+                                "ordersId.TRAILING_STOP_MARKET.index": chIndex + 1,
+                                "ordersId.TRAILING_STOP_MARKET.dIndex": dIndex + 1
+                            }
+                        }
+                    );
 
                 } else {
                     const lastArrayPriceIndex = arrayPrice.length - 1;
@@ -191,27 +218,26 @@ async function ch(symbol, price) {
 
                     logUserEvent(`${orderId}`, `FIXED CH AND NEXT STEP: ${order?.symbol}, current price: ${currentPrice}, current CH Price:${arrayPrice[chIndex]}, current CH Deviation: ${arrayDeviation[dIndex]}, next Step Price:${newPrice}, next Step Deviation:${newDeviation}`);
 
-                    updatedOrder = {
-                        ...updatedOrder,
-                        arrayPrice: [...arrayPrice, newPrice],
-                        arrayDeviation: [...arrayDeviation, newDeviation],
-                        price: newPrice,
-                        deviation: newDeviation,
-                        index: chIndex + 1,
-                        dIndex: dIndex + 1
-                    };
+                    await Order.updateOne(
+                        {_id: String(order?._id)},
+                        {
+                            $set: {
+                                "ordersId.TRAILING_STOP_MARKET.fix": true,
+                                "ordersId.TRAILING_STOP_MARKET.arrayPrice": [...arrayPrice, newPrice],
+                                "ordersId.TRAILING_STOP_MARKET.arrayDeviation": [...arrayDeviation, newDeviation],
+                                "ordersId.TRAILING_STOP_MARKET.price": newPrice,
+                                "ordersId.TRAILING_STOP_MARKET.deviation": newDeviation,
+                                "ordersId.TRAILING_STOP_MARKET.index": chIndex + 1,
+                                "ordersId.TRAILING_STOP_MARKET.dIndex": dIndex + 1
+                            }
+                        }
+                    );
                 }
 
+                return;
 
-                await fixedPosition(updatedOrder, false);
-                return updatedOrder;
+            } else if (fix && parseFloat(deviation) >= profit && !order?.remove) {
 
-            } else if (fix && parseFloat(deviation) >= profit) {
-
-                const index = queue[order?.symbol].findIndex(item => item.orderId === orderId);
-
-                if(index !== -1 && index === 0 || profit > 0)
-                {
                     await closePosition({
                         symbol: order.symbol,
                         positionSide,
@@ -219,122 +245,115 @@ async function ch(symbol, price) {
                         quantity: q,
                         type: 'MARKET',
                         id: orderId
-                    }, order.userId, order.key_1, order.key_2, order.binance_test);
-
-                    if (withoutLoss[currentSymbol]) {
-                        withoutLoss[currentSymbol] = withoutLoss[currentSymbol].filter(findOrder => findOrder.orderId !== orderId);
-                    }
+                    }, order.userId, order.key_1, order.key_2, order.binance_test, String(order?._id));
 
                     await Order.updateOne(
-                        { positionsId: orderId, userId: order.userId },
-                        { "ordersId.TRAILING_STOP_MARKET.closed": true }
+                        {_id: String(order?._id)},
+                        {
+                            $set: {
+                                "ordersId.TRAILING_STOP_MARKET.closed": true
+                            }
+                        }
                     );
-
-                    queue[currentSymbol] = queue[currentSymbol].filter(findItem => findItem.orderId !== orderId);
 
                     logUserEvent(`${order?.orderId}`, `CH Close ORDER: ${order?.symbol}, current price: ${currentPrice}, currentCHPrice:${arrayPrice[chIndex]}, currentCHDeviation: ${arrayDeviation[dIndex]}`);
 
-                    return { ...order, remove: true };
-                } else {
-                    logUserEvent(`${order?.orderId}`, `CH NOT close order, waiting list : ${order?.symbol}, current price: ${currentPrice}, currentCHPrice:${arrayPrice[chIndex]}, currentCHDeviation: ${arrayDeviation[dIndex]}`);
-                }
+                    return;
             }
 
-            return order;
+            return;
         }));
-
-        trailingCh[currentSymbol] = updatedOrders.filter(order => !order.remove);
 
     } catch (e) {
         console.error(e);
     }
 }
 
-function addwithoutLoss(settings){
-    if (queue[settings?.symbol]) {
-        const existingIndex = queue[settings?.symbol].findIndex(item => item.orderId === settings?.orderId);
-        if (existingIndex !== -1) {
-            if (parseFloat(settings?.allPrice) > queue[settings?.symbol][existingIndex].price) {
-                queue[settings?.symbol][existingIndex].price = parseFloat(settings?.fixedPrice);
-            }
-        } else {
-            queue[settings?.symbol].push({orderId: settings?.orderId, price: parseFloat(settings?.fixedPrice)});
-        }
-    } else {
-        queue = {
-            [settings?.symbol]: [
-                {orderId: settings?.orderId, price: parseFloat(settings?.fixedPrice)}
-            ],
-            ...queue
-        };
-    }
+// function addwithoutLoss(settings){
+//     if (queue[settings?.symbol]) {
+//         const existingIndex = queue[settings?.symbol].findIndex(item => item.orderId === settings?.orderId);
+//         if (existingIndex !== -1) {
+//             if (parseFloat(settings?.allPrice) > queue[settings?.symbol][existingIndex].price) {
+//                 queue[settings?.symbol][existingIndex].price = parseFloat(settings?.fixedPrice);
+//             }
+//         } else {
+//             queue[settings?.symbol].push({orderId: settings?.orderId, price: parseFloat(settings?.fixedPrice)});
+//         }
+//     } else {
+//         queue = {
+//             [settings?.symbol]: [
+//                 {orderId: settings?.orderId, price: parseFloat(settings?.fixedPrice)}
+//             ],
+//             ...queue
+//         };
+//     }
+//
+//     queue[settings?.symbol].sort((a, b) => a.price - b.price);
+//
+//     if(withoutLoss[settings?.symbol]){
+//         withoutLoss[settings?.symbol].push({...settings})
+//     } else {
+//         withoutLoss = {
+//             [settings?.symbol]:[
+//                 {...settings}
+//             ],
+//             ...withoutLoss
+//         }
+//     }
+//
+//     console.log(withoutLoss[settings?.symbol])
+//     console.log(queue)
+// }
 
-    queue[settings?.symbol].sort((a, b) => a.price - b.price);
+// async function removeQueue(id,symbol){
+//     const existingIndex = queue[symbol].findIndex(item => item.orderId === id);
+//     if (existingIndex !== -1) {
+//         queue[symbol] = queue[symbol].filter(findItem => findItem.orderId !== id);
+//     }
+//
+//     queue[symbol].sort((a, b) => a.price - b.price);
+//
+//     console.log(queue)
+//
+//     return;
+// }
 
-    if(withoutLoss[settings?.symbol]){
-        withoutLoss[settings?.symbol].push({...settings})
-    } else {
-        withoutLoss = {
-            [settings?.symbol]:[
-                {...settings}
-            ],
-            ...withoutLoss
-        }
-    }
-
-    console.log(withoutLoss[settings?.symbol])
-    console.log(queue)
-}
-
-async function removeQueue(id,symbol){
-    const existingIndex = queue[symbol].findIndex(item => item.orderId === id);
-    if (existingIndex !== -1) {
-        queue[symbol] = queue[symbol].filter(findItem => findItem.orderId !== id);
-    }
-
-    queue[symbol].sort((a, b) => a.price - b.price);
-
-    console.log(queue)
-
-    return;
-}
-
-function addTrailing(settings){
-    if (queue[settings?.symbol]) {
-        const existingIndex = queue[settings?.symbol].findIndex(item => item.orderId === settings?.orderId);
-        if (existingIndex !== -1) {
-            if (parseFloat(settings?.allPrice) > queue[settings?.symbol][existingIndex].price) {
-                queue[settings?.symbol][existingIndex].price = parseFloat(settings?.allPrice);
-            }
-        } else {
-            queue[settings?.symbol].push({orderId: settings?.orderId, price: parseFloat(settings?.allPrice)});
-        }
-    } else {
-        queue = {
-            [settings?.symbol]: [
-                {orderId: settings?.orderId, price: parseFloat(settings?.allPrice)}
-            ],
-            ...queue
-        };
-    }
-
-    queue[settings?.symbol].sort((a, b) => a.price - b.price);
-
-    if(trailingCh[settings?.symbol]){
-        trailingCh[settings?.symbol].push({...settings})
-    } else {
-        trailingCh = {
-            [settings?.symbol]:[
-                {...settings}
-            ],
-            ...trailingCh
-        }
-    }
-
-    console.log(trailingCh[settings?.symbol])
-    console.log(queue)
-
-}
+// function addTrailing(settings){
+//     if (queue[settings?.symbol]) {
+//         const existingIndex = queue[settings?.symbol].findIndex(item => item.orderId === settings?.orderId);
+//         if (existingIndex !== -1) {
+//             if (parseFloat(settings?.allPrice) > queue[settings?.symbol][existingIndex].price) {
+//                 queue[settings?.symbol][existingIndex].price = parseFloat(settings?.allPrice);
+//             }
+//         } else {
+//             queue[settings?.symbol].push({orderId: settings?.orderId, price: parseFloat(settings?.allPrice)});
+//         }
+//     } else {
+//         queue = {
+//             [settings?.symbol]: [
+//                 {orderId: settings?.orderId, price: parseFloat(settings?.allPrice)}
+//             ],
+//             ...queue
+//         };
+//     }
+//
+//     queue[settings?.symbol].sort((a, b) => a.price - b.price);
+//
+//     if(trailingCh[settings?.symbol]){
+//         trailingCh[settings?.symbol].push({...settings})
+//     } else {
+//         trailingCh = {
+//             [settings?.symbol]:[
+//                 {...settings}
+//             ],
+//             ...trailingCh
+//         }
+//     }
+//
+//     console.log(trailingCh[settings?.symbol])
+//     console.log(queue)
+//
+// }
 
 async function removeInstrument(type, orderId, symbol, id, userId) {
 
@@ -394,17 +413,15 @@ async function removeInstrument(type, orderId, symbol, id, userId) {
 
 async function deviationFixedPosition(order,type) {
     if(type){
-        await Order.updateOne({
-            positionsId: order?.orderId,
-            userId: order?.userId,
-            opened: true,
-            currency: order?.symbol,
-            "ordersId.withoutLoss.fixDeviation": false,
-        }, {
-            "ordersId.withoutLoss.fixDeviation": true
-        });
-
-        console.log(`[${new Date().toLocaleTimeString('uk-UA')}] DEVIATION FIXED POSITION: ${JSON.stringify(order)}`)
+        // await Order.updateOne({
+        //     positionsId: order?.orderId,
+        //     userId: order?.userId,
+        //     opened: true,
+        //     currency: order?.symbol,
+        //     "ordersId.withoutLoss.fixDeviation": false,
+        // }, {
+        //     "ordersId.withoutLoss.fixDeviation": true
+        // });
 
         const orders = await Order.find({
             userId: order?.userId,
@@ -425,16 +442,16 @@ async function deviationFixedPosition(order,type) {
 }
 async function fixedPosition(order,type) {
     if(type){
-        await Order.updateOne({
-            positionsId: order?.orderId,
-            userId: order?.userId,
-            opened: true,
-            currency: order?.symbol,
-            "ordersId.withoutLoss.fix": false,
-        }, {
-            "ordersId.withoutLoss.fixed": true,
-            "ordersId.withoutLoss.fix": true
-        });
+        // await Order.updateOne({
+        //     positionsId: order?.orderId,
+        //     userId: order?.userId,
+        //     opened: true,
+        //     currency: order?.symbol,
+        //     "ordersId.withoutLoss.fix": false,
+        // }, {
+        //     "ordersId.withoutLoss.fixed": true,
+        //     "ordersId.withoutLoss.fix": true
+        // });
 
         const orders = await Order.find({
             userId: order?.userId,
@@ -451,14 +468,14 @@ async function fixedPosition(order,type) {
         });
 
     } else {
-        await Order.updateOne({
-            positionsId: order?.orderId,
-            userId: order?.userId,
-            opened: true,
-            currency: order?.symbol,
-        }, {
-            "ordersId.TRAILING_STOP_MARKET": {...order, fix:true}
-        });
+        // await Order.updateOne({
+        //     positionsId: order?.orderId,
+        //     userId: order?.userId,
+        //     opened: true,
+        //     currency: order?.symbol,
+        // }, {
+        //     "ordersId.TRAILING_STOP_MARKET": {...order, fix:true}
+        // });
 
         const orders = await Order.find({
             userId: order?.userId,
@@ -500,7 +517,7 @@ async function removeStreamPrice(id) {
 
 exports.streamPrice = streamPrice
 exports.removeStreamPrice = removeStreamPrice
-exports.addwithoutLoss = addwithoutLoss
-exports.addTrailing = addTrailing
+// exports.addwithoutLoss = addwithoutLoss
+// exports.addTrailing = addTrailing
 exports.removeInstrument = removeInstrument
-exports.removeQueue = removeQueue
+// exports.removeQueue = removeQueue

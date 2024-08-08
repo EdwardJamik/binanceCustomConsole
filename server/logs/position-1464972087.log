@@ -1,0 +1,19 @@
+08.08.2024 02:12:53 Open position: ETHUSDT, Response Binance -> {"orderId":1464972087,"symbol":"ETHUSDT","status":"FILLED","clientOrderId":"FNUTyE4TlFinT5cDyIKwLB","price":"0.00","avgPrice":"2540.00000","origQty":"0.200","executedQty":"0.200","cumQuote":"508.00000","timeInForce":"GTC","type":"MARKET","reduceOnly":false,"closePosition":false,"side":"BUY","positionSide":"LONG","stopPrice":"0.00","workingType":"CONTRACT_PRICE","priceProtect":false,"origType":"MARKET","priceMatch":"NONE","selfTradePreventionMode":"NONE","goodTillDate":0,"time":1723072373451,"updateTime":1723072373459}
+08.08.2024 02:13:04 Close position: ETHUSDT, Response Binance -> {"orderId":1464972095,"symbol":"ETHUSDT","status":"FILLED","clientOrderId":"bRbON1Epk9s7Ef4dn7SUg5","price":"0.00","avgPrice":"2430.09000","origQty":"0.200","executedQty":"0.200","cumQuote":"486.01800","timeInForce":"GTC","type":"MARKET","reduceOnly":true,"closePosition":false,"side":"SELL","positionSide":"LONG","stopPrice":"0.00","workingType":"CONTRACT_PRICE","priceProtect":false,"origType":"MARKET","priceMatch":"NONE","selfTradePreventionMode":"NONE","goodTillDate":0,"time":1723072383551,"updateTime":1723072383555}
+08.08.2024 02:18:01 FIXED БУ: ETHUSDT, current price: 2546, fixedPrice:0.2, profit: 0.7931200000000002
+08.08.2024 02:18:01 FIXED CH AND NEXT STEP: ETHUSDT, current price: 2546, current CH Price:0.1, current CH Deviation: 0.0005, next Step Price:0.2, next Step Deviation:0.1995
+08.08.2024 02:18:01 FIXED БУ: ETHUSDT, current price: 2544.26, fixedPrice:0.2, profit: 0.44525920000004365
+08.08.2024 02:18:01 FIXED CH AND NEXT STEP: ETHUSDT, current price: 2544.26, current CH Price:0.1, current CH Deviation: 0.0005, next Step Price:0.2, next Step Deviation:0.1995
+08.08.2024 02:18:01 FIXED БУ: ETHUSDT, current price: 2544.22, fixedPrice:0.2, profit: 0.43726239999995997
+08.08.2024 02:18:01 FIXED CH AND NEXT STEP: ETHUSDT, current price: 2544.22, current CH Price:0.1, current CH Deviation: 0.0005, next Step Price:0.2, next Step Deviation:0.1995
+08.08.2024 02:18:01 FIXED БУ: ETHUSDT, current price: 2543.71, fixedPrice:0.2, profit: 0.3353032000000073
+08.08.2024 02:18:01 FIXED CH AND NEXT STEP: ETHUSDT, current price: 2543.71, current CH Price:0.1, current CH Deviation: 0.0005, next Step Price:0.2, next Step Deviation:0.1995
+08.08.2024 02:18:01 FIXED БУ: ETHUSDT, current price: 2544.26, fixedPrice:0.2, profit: 0.44525920000004365
+08.08.2024 02:18:01 FIXED CH AND NEXT STEP: ETHUSDT, current price: 2544.26, current CH Price:0.1, current CH Deviation: 0.0005, next Step Price:0.2, next Step Deviation:0.1995
+08.08.2024 02:18:01 FIXED БУ: ETHUSDT, current price: 2543.68, fixedPrice:0.2, profit: 0.32930559999996734
+08.08.2024 02:18:01 FIXED CH AND NEXT STEP: ETHUSDT, current price: 2543.68, current CH Price:0.1, current CH Deviation: 0.0005, next Step Price:0.2, next Step Deviation:0.1995
+08.08.2024 02:18:01 FIXED БУ: ETHUSDT, current price: 2543.69, fixedPrice:0.2, profit: 0.33130480000001095
+08.08.2024 02:18:01 FIXED CH AND NEXT STEP: ETHUSDT, current price: 2543.69, current CH Price:0.1, current CH Deviation: 0.0005, next Step Price:0.2, next Step Deviation:0.1995
+08.08.2024 02:18:08 FIXED DEVIATION БУ: ETHUSDT, current price: 2546, maxDeviationPrice:0.230000, profit: 0.7931200000000002
+08.08.2024 02:18:08 FIXED CH AND NEXT STEP: ETHUSDT, current price: 2546, current CH Price:0.2, current CH Deviation: 0.1995, next Step Price:0.30000000000000004, next Step Deviation:0.29950000000000004
+08.08.2024 02:19:34 FIXED CH AND NEXT STEP: ETHUSDT, current price: 2551.5, current CH Price:0.30000000000000004, current CH Deviation: 0.29950000000000004, next Step Price:0.4, next Step Deviation:0.3995

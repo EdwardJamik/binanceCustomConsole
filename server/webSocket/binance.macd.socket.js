@@ -36,7 +36,7 @@ async function addSocket(id, symbol, interval, number, type, type_g, test, user)
                 const findOrder = await Order.findOne({"ordersId.macd.status": true, "ordersId.macd.timeFrame":interval, "ordersId.macd.type_g":type_g, "ordersId.macd.type":type, "ordersId.macd.number":number, opened:true})
 
                 const order = {...findOrder?.openedConfig, side: findOrder?.openedConfig?.positionSide === 'LONG' ? 'SELL' : 'BUY'}
-                createOrder(order, user, false)
+                // createOrder(order, user, false)
                 console.log(`[${new Date().toLocaleTimeString('uk-UA')}] MACD DISCONNECT:`,symbol,id,interval)
                 delete orders[`${symbol}@${interval}@${id}`]
                 delete macdCloseInput[`${symbol}@${interval}@${id}`]

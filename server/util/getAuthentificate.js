@@ -1,6 +1,7 @@
 const {setUserToken} = require("./setUserToken");
 const {getUserApi} = require("./getUserApi");
 const Order = require("../models/orders.model");
+const PreSetting = require("../models/presetting.model");
 const {streamPrice, setStremPriceSocket} = require("../webSocket/binance.price.socket");
 const {createEventsSocket, setSocket} = require("../webSocket/binance.event.socket");
 const {getMinimumBuyQuantity} = require("./getMinPrice");
@@ -60,6 +61,9 @@ async function getAuthentificate(token, id) {
                 const minPrice = await getMinimumBuyQuantity(user?.symbol, id, userApis?.key_1, userApis?.key_2)
                 const commission = await getCommisionRate(userApis?.key_1, userApis?.key_2, {symbol: user?.symbol}, user)
                 const balance = await getAvailableBalance(userApis?.key_1, userApis?.key_2, user)
+
+                const preSetting = await PreSetting.distinct('name',{user_id: user?._id})
+
                 if (parseFloat(user?.currentOption?.amount) < parseFloat(minPrice?.minimumQuantity)) {
                     userData = {
                         ...userData,
@@ -67,8 +71,11 @@ async function getAuthentificate(token, id) {
                         isAuthenticated: true,
                         positions: modifiedOrders,
                         commission: commission,
-                        favorite:userFavorite,
+                        favorite: userFavorite,
                         balance,
+                        preSetting,
+                        isOpened:true,
+                        selectedPreSetting: user?.preSetting,
                         type_binance: user?.binance_test,
                         currentOption: {
                             amount: roundDecimbal(`${minPrice?.minimumQuantity}`),
@@ -86,6 +93,9 @@ async function getAuthentificate(token, id) {
                         commission: commission,
                         favorite:userFavorite,
                         balance,
+                        preSetting,
+                        isOpened:true,
+                        selectedPreSetting: user?.preSetting,
                         type_binance: user?.binance_test,
                         currentOption: {
                             ...user?.currentOption,
@@ -97,10 +107,10 @@ async function getAuthentificate(token, id) {
                 }
 
                 socketServer.socketServer.io.to(id).emit('userData', {...userData});
-                socketServer.socketServer.io.to(id).emit('userMessage', {
-                    type: 'success',
-                    message: `Успешное подключение к Binance API`,
-                });
+                // socketServer.socketServer.io.to(id).emit('userMessage', {
+                //     type: 'success',
+                //     message: `Успешное подключение к Binance API`,
+                // });
 
             } else {
                 socketServer.socketServer.io.to(id).emit('userData', {

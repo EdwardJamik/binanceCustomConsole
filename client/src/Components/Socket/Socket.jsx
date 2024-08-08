@@ -10,47 +10,57 @@ export const useSocket = () => useContext(SocketContext);
 
 export const SocketProvider = ({ children }) => {
     const [cookies, removeCookie] = useCookies();
-    const [socket, setSocket] = useState(null);
     const dispatch = useDispatch();
+    const [socket, setSocket] = useState(null);
 
-    useEffect(() => {
-        const mainSocket = io(`${import.meta.env.VITE_SOCKET_API}`, {
+    const connectSocket = () => {
+        const newSocket = io(`${import.meta.env.VITE_SOCKET_API}`, {
             reconnection: true,
             reconnectionAttempts: Infinity,
-            reconnectionDelay: 1000,
-            reconnectionDelayMax: 5000,
+            reconnectionDelay: 500,
+            reconnectionDelayMax: 1000,
             timeout: 20000,
+            pingTimeout: 20000,
+            pingInterval: 5000
         });
+        setSocket(newSocket);
+    };
 
-        mainSocket.on('connect', () => {
+
+    if(!socket){
+        connectSocket()
+    }
+
+    useEffect(() => {
+
+        socket.on('connect', () => {
             console.log('Connected to server');
+            if (cookies.token)
+                socket.emit('authenticate', { token: cookies.token });
         });
 
-        mainSocket.on('disconnect', (reason) => {
+        socket.on('disconnect', (reason) => {
             console.log('Disconnected:', reason);
-            if (reason === 'io server disconnect') {
-                mainSocket.connect();
-            }
+            connectSocket();
         });
 
-        mainSocket.on('connect_error', (error) => {
+        socket.on('connect_error', (error) => {
             console.log('Connection error:', error);
             openNotificationWithIcon('error', 'Connection Error', 'Failed to connect to the server');
+            connectSocket();
         });
 
-        setSocket(mainSocket);
-
         return () => {
-            mainSocket.disconnect();
+            socket.disconnect();
         };
-    }, []);
+    }, [socket,cookies]);
 
     // Обробка подій сокета
     useEffect(() => {
         if (socket) {
-            if(cookies.token) {
-                socket.emit('authenticate', {token: cookies.token});
-            }
+            // if(cookies.token) {
+            //     socket.emit('authenticate', {token: cookies.token});
+            // }
 
             socket.on("userMessage", (data) => {
                 if (data.type === 'error')
@@ -114,9 +124,6 @@ export const SocketProvider = ({ children }) => {
                 socket.off("updateCommission");
             };
         }
-        // else {
-        //     dispatch({type: 'SET_AUTHENTICATION_STATUS', payload: false});
-        // }
     }, [socket, cookies, dispatch]);
 
     return (

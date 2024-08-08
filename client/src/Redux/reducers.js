@@ -8,6 +8,7 @@ const initialState = {
     symbol:null,
     trailing:null,
     withoutLoss:null,
+    isOpened:false,
     type_binance:null,
     balance:{'USDT':0},
     currentSocketPrice: {
@@ -15,6 +16,8 @@ const initialState = {
         other:[null]
     },
     favorite:[],
+    preSetting:[],
+    selectedPreSetting:'custom',
     positionPrice:{},
     commission:{commissionTaker:null,commissionMaker:null},
     currentOption: {

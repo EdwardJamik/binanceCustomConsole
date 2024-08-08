@@ -6,10 +6,10 @@ const User = require("../models/user.model");
 const {getAvailableBalance} = require("./getBalance");
 const {bot} = require("../bot");
 const socketServer = require("../server");
-const logUserEvent = require("./logger");
+// const logUserEvent = require("./logger");
 const {TEST_BINANCE_API_DOMAIN,BINANCE_API_DOMAIN} = process.env
 
-async function closePosition(order, userId, key_1, key_2, binance_test) {
+async function closePosition(order, userId, key_1, key_2, binance_test, db_order_id) {
 
     const currencySkeleton = {
         symbol: order?.symbol,
@@ -32,12 +32,12 @@ async function closePosition(order, userId, key_1, key_2, binance_test) {
 
         const headers = getHeaders(key_1)
 
-        console.log(`[${new Date().toLocaleTimeString('uk-UA')}] CANCELED ORDER INSTRUMENT: ${JSON.stringify(currencySkeleton)}`)
+        // console.log(`[${new Date().toLocaleTimeString('uk-UA')}] CANCELED ORDER INSTRUMENT: ${JSON.stringify(currencySkeleton)}`)
 
         let queryStringBatch = `batchOrders=${encodeURIComponent(JSON.stringify([{...currencySkeleton}]))}&timestamp=${Date.now()}`;
         const signatureBatch = getSignature(queryStringBatch, key_2)
 
-        const findOrder = await Order.findOne({positionsId: String(order?.id)})
+        const findOrder = await Order.findOne({_id: String(db_order_id)})
 
         if(!findOrder?.ClosePositionData) {
             axios.post(`https://${binance_test ? TEST_BINANCE_API_DOMAIN : BINANCE_API_DOMAIN}/fapi/v1/batchOrders?${queryStringBatch}&signature=${signatureBatch}`, null, {
@@ -50,7 +50,7 @@ async function closePosition(order, userId, key_1, key_2, binance_test) {
 
                         const user = await User.findOne({_id: userId})
 
-                        const updatedOrder = await Order.findOneAndUpdate({positionsId: String(order?.id)}, {
+                        const updatedOrder = await Order.findOneAndUpdate({_id: String(db_order_id)}, {
                             ClosePositionData: response[0],
                             opened: false
                         }, {returnDocument: 'after'});
@@ -113,7 +113,7 @@ async function closePosition(order, userId, key_1, key_2, binance_test) {
                 } else {
                     console.log(`[${new Date().toLocaleTimeString('uk-UA')}] ERROR CANCELED INSTRUMENT ORDER STEP 2 (ORDER NOR CURRENTS): ${JSON.stringify(responseBatch?.data[0]?.msg)}`)
 
-                    await Order.updateOne({_id: order?.id}, {
+                    await Order.updateOne({_id: db_order_id}, {
                         opened: false
                     });
 
